@@ -1,0 +1,161 @@
+from datetime import datetime
+
+import cv2
+import imutils
+from imutils.contours import sort_contours
+import numpy as np
+
+ref = cv2.imread("ref_digits.png")
+
+
+def classify_digits(img, reference_digits):
+    img = imutils.resize(img, height=150)
+    img_thresh = get_thresh(img)
+    img_cnts, bboxes = get_contours(img_thresh, upper_thresh=11000)
+
+    cv2.drawContours(img, img_cnts, -1, (0, 255, 0), 2)
+
+    output = []
+    for c, box in zip(img_cnts, bboxes):
+        (x, y, w, h) = box
+        roi = img[y:y + h, x:x + w]
+        roi = cv2.resize(roi, (57, 88))
+
+        # Initialize a list of template matching scores
+        scores = []
+
+        # Loop over the reference digit name and digit ROI
+        for (digit, digitROI) in reference_digits.items():
+            # Apply correlation-based template matching, take the
+            # score, and update the scores list
+            result = cv2.matchTemplate(roi, digitROI,
+                                       cv2.TM_CCOEFF)
+            (_, score, _, _) = cv2.minMaxLoc(result)
+            scores.append(score)
+
+        # The classification for the digit ROI will be the reference
+        # digit name with the largest template matching score
+        max_score = str(np.argmax(scores))
+        output.append((max_score, roi))
+
+    return output
+
+
+def define_reference_digits(ref_cnts, bounding_boxes):
+    digits = {}
+    # Loop over the OCR reference contours
+    for (i, c) in enumerate(ref_cnts):
+        # get the bounding box for the digit and resize it to a fixed size
+        (x, y, w, h) = bounding_boxes[i]
+        roi = ref[y:y + h, x:x + w]
+        roi = cv2.resize(roi, (57, 88))
+
+        # update the digits dictionary, mapping the digit name to the ROI
+        digits[i] = roi
+
+    return digits
+
+
+def get_contours(thresh, lower_thresh=2000, upper_thresh=5000):
+    (_, cnts, _) = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
+                            cv2.CHAIN_APPROX_SIMPLE)
+    sorted_cnts, bounding_boxes = sort_contours(cnts)
+    final_contours = []
+    bboxes = []
+    # Filter contours
+    for cnt, bbox in zip(sorted_cnts, bounding_boxes):
+        area = cv2.contourArea(cnt)
+        if upper_thresh > area > lower_thresh:
+            final_contours.append(cnt)
+            bboxes.append(bbox)
+
+    return final_contours, bboxes
+
+
+def get_filtered_frame(frame, background_extractor, blur_intensity=3):
+    # Remove the text boxes
+    frame = text_areas_removed(frame.copy())
+
+    # Convert the filtered frame to gray for faster / more simple processing
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    # Apply some blur to lessen the affects of camera sensor noise
+    frame = cv2.GaussianBlur(frame, (blur_intensity, blur_intensity), 0)
+
+    # Remove the background
+    frame = background_extractor.apply(frame)
+
+    return frame
+
+
+def get_frame_time(frame, reference_digits, timestamp_box):
+    timestamp_area = get_timestamp_area(frame, timestamp_box)
+    frame_time = process_timestamp_area(reference_digits, timestamp_area)
+    return frame_time
+
+
+def get_timestamp_area(frame, ts_box):
+    """
+    Get the cropped area surrounding the timestamp of an image.
+    :param frame: A Numpy array representing the original image.
+    :param ts_box: A tuple returned from OpenCV's selectROI function defining the coordinates around the timestamp of
+    the image.
+    :return: A Numpy array representing the cropped area of the image containing the timestamp information.
+    """
+    timestamp_area = frame[int(ts_box[1]):int(ts_box[1] + ts_box[3]), int(ts_box[0]):int(ts_box[0] + ts_box[2])]
+    return timestamp_area
+
+
+def get_timestamp_box(frame):
+    print("[!] Please select the area around the video timestamp.")
+    ts_box = cv2.selectROI("Timestamp Area Selection", frame, fromCenter=False,
+                           showCrosshair=True)
+    cv2.destroyAllWindows()
+    return ts_box
+
+
+def get_thresh(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    final = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+    return final
+
+
+def process_reference_digits(reference_image):
+    ref = cv2.imread(reference_image)
+    # Take a threshold of the image before finding contours
+    thresh = get_thresh(ref)
+    # Get contours of the reference image. Each should represent a digit
+    # for matching against each frame in the video stream
+    reference_contours, ref_boxes = get_contours(thresh, upper_thresh=9000)
+    # Get the reference digits
+    ref_digits = define_reference_digits(reference_contours, ref_boxes)
+
+    return ref_digits
+
+
+def process_timestamp_area(reference_digits, timestamp_area):
+    (h, w) = timestamp_area.shape[:2]
+
+    first_line = timestamp_area[:int(h / 2), :w]
+    fl_classification = classify_digits(first_line, reference_digits)
+    fl_labels = [digit[0] for digit in fl_classification]
+
+    second_line = timestamp_area[int(h / 2):, :w]
+    sl_classification = classify_digits(second_line, reference_digits)
+    sl_labels = [digit[0] for digit in sl_classification]
+
+    labels = ''.join(fl_labels + sl_labels)
+    try:
+        timestamp = datetime.strptime(labels[:-2], "%Y%m%d%H%M%S")
+        print("[*] Processed time:", timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+        return timestamp
+    except ValueError:
+        print("[!] Could not process time. Please try again.")
+
+
+def text_areas_removed(frame):
+    frame[11:11 + 29, 138:138 + 403] = (0, 0, 0)
+    frame[531:531 + 15, 138:138 + 161] = (0, 0, 0)
+    frame[516:516 + 29, 760:760 + 130] = (0, 0, 0)
+
+    return frame
