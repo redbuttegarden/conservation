@@ -106,5 +106,10 @@ venv.bak/
 .mypy_cache/
 .idea/
 rana_dl/rana_processing/model/pollinator.model
-rana_dl/rana_processing/log.db
+*.db
 rana_dl/rana_processing/scratch.py
+
+# Ignore image files except for timestamp reference image
+*.jpeg
+!rana_dl/rana_processing/ref_digits.png
+*.png

@@ -1,46 +1,34 @@
 import argparse
-import sys
 import time
 
 import cv2
-from collections import namedtuple
 import numpy as np
 import os
-from os import walk
 
 import imutils
 from imutils.video import FileVideoStream
 
-from .log import setup, add_entry, get_last_entry
-from .pollinator_classifier import CLASSES, classify, create_classification_folders
-from .model.test_model import get_label, model_classifier, pre_process
-from .utils import get_contours, get_frame_time, get_timestamp_box, process_reference_digits
+from log import setup, add_entry, get_last_entry
+from pollinator_classifier import CLASSES, classify, create_classification_folders
+from model.test_model import get_label, model_classifier, pre_process
+from utils import get_contours, get_filename, get_formatted_box, get_frame_time, get_timestamp_box, manual_selection, \
+    process_reference_digits, get_video_list
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-m", "--manual-selection", action="store_true",
                 help="flag to enable manual pollinator selection")
 ap.add_argument("-u", "--use-model", action="store_true",
                 help="flag to enable pollinator classification using model")
-ap.add_argument("-r", "--reference", required=True,
-                help="path to reference OCR font image")
 ap.add_argument("-v", "--video-path", type=str, required=True,
                 help="path to directory containing video files")
 ap.add_argument("-w", "--write-path", type=str, required=True,
                 help="path to write possible pollinator images")
 args = vars(ap.parse_args())
 
-Video = namedtuple('Video', ['directory', 'files'])
 FILE_LOG = "pollinator_video_log.json"
 
 if args["use_model"]:
     model_path = "model/pollinator.model"
-
-
-def get_video_list():
-    videos = []
-    for (dirpath, dirnames, filenames) in walk(args["video_path"]):
-        videos.append(Video(dirpath, filenames))
-    return videos
 
 
 def main():
@@ -53,9 +41,9 @@ def main():
 
     # The reference digits are computed based on a supplied reference photo
     # We assume the reference photo contains all the digits 0-9 from left to right
-    reference_digits = process_reference_digits(args["reference"])
+    reference_digits = process_reference_digits()
 
-    for vdir in get_video_list():
+    for vdir in get_video_list(args["video_path"]):
         for video in vdir.files:
             last_log = check_logs(manual, video)
             if last_log:
@@ -162,8 +150,7 @@ def main():
             vs.stop()
 
             # Video done being processed. Move to finished folder
-            os.rename(os.path.join(vdir.directory, video), os.path.join(args["video_path"], os.pardir, os.pardir,
-                                                                        "Processed Videos", video))
+            os.rename(os.path.join(vdir.directory, video), os.path.join(args["video_path"], "Processed Videos", video))
 
     cv2.destroyAllWindows()
 
@@ -199,45 +186,6 @@ def compute_frame_time(frame, reference_digits, time_parsable, ts_box):
     return frame_time, ts_box
 
 
-def select_pollinator(frame, multiple=False):
-    cv2.destroyAllWindows()
-    print("[!] Please select the area around the pollinator.")
-    if multiple:
-        pollinators = cv2.selectROIs("Pollinator Area Selection", frame, fromCenter=False,
-                                     showCrosshair=True)
-    else:
-        pollinator = cv2.selectROI("Pollinator Area Selection", frame, fromCenter=False,
-                                   showCrosshair=True)
-        # Convert tuple to ndarray so the same type is returned regardless
-        # of what the multiple parameter is set to.
-        pollinators = np.array([pollinator], np.int32)
-
-    return pollinators
-
-
-def manual_selection(frame, frame_number):
-    print("[*] Frame number {}. If a pollinator is present, hit `p`. Otherwise, press any other key to continue."
-          .format(frame_number))
-    cv2.imshow("Pollinator Check", frame)
-    key = cv2.waitKey(0) & 0xFF
-
-    if key == ord('p'):
-        pollinator_boxes = select_pollinator(frame)
-        for pollinator_box in pollinator_boxes:
-            x, y, w, h = pollinator_box
-            box = get_formatted_box(x, y, w, h)
-            pollinator = get_pollinator_area(frame, pollinator_box)
-
-            yield pollinator, box
-
-    # if the `q` key was pressed, break from the loop
-    elif key == ord("q"):
-        print("[!] Quitting!")
-        sys.exit()
-    else:
-        pass
-
-
 def analyze_motion(motion_map, frame, f_num, frame_time, kernel, thresh1, thresh2, video, count, vdir,
                    machine_learning):
 
@@ -249,9 +197,7 @@ def analyze_motion(motion_map, frame, f_num, frame_time, kernel, thresh1, thresh
     # Flag if the frame doesn't contain any pollinators
     all_neg = False
 
-    # If these will be passed to a model, create a list to hold possible pollinators
-    if machine_learning:
-        possible_pollinators = []
+    possible_pollinators = []
 
     # Draw contours around the white spots that meet our threshold criteria
     cnts, bounding_boxes = get_contours(morph, lower_thresh=thresh1, upper_thresh=thresh2)
@@ -366,22 +312,6 @@ def analyze_motion(motion_map, frame, f_num, frame_time, kernel, thresh1, thresh
         cv2.waitKey(0)
 
     return count
-
-
-def get_formatted_box(x, y, w, h):
-    box = "{} {} {} {}".format(x, y, w, h)
-    return box
-
-
-def get_filename(count, video):
-    file_name = os.path.join(video[:-4] + "_" + str(count) + ".png")
-    return file_name
-
-
-def get_pollinator_area(frame, pollinator_box):
-    pollinator_area = frame[int(pollinator_box[1]):int(pollinator_box[1] + pollinator_box[3]),
-                            int(pollinator_box[0]):int(pollinator_box[0] + pollinator_box[2])]
-    return pollinator_area
 
 
 def check_logs(manual, video):

@@ -1,11 +1,15 @@
+import os
+import sys
+from collections import namedtuple
 from datetime import datetime
+from os import walk
 
 import cv2
 import imutils
 from imutils.contours import sort_contours
 import numpy as np
 
-ref = cv2.imread("ref_digits.png")
+Video = namedtuple('Video', ['directory', 'files'])
 
 
 def classify_digits(img, reference_digits):
@@ -41,7 +45,7 @@ def classify_digits(img, reference_digits):
     return output
 
 
-def define_reference_digits(ref_cnts, bounding_boxes):
+def define_reference_digits(ref, ref_cnts, bounding_boxes):
     digits = {}
     # Loop over the OCR reference contours
     for (i, c) in enumerate(ref_cnts):
@@ -120,15 +124,15 @@ def get_thresh(img):
     return final
 
 
-def process_reference_digits(reference_image):
-    ref = cv2.imread(reference_image)
+def process_reference_digits():
+    ref = cv2.imread(os.path.join(os.path.dirname(__file__), "ref_digits.png"))
     # Take a threshold of the image before finding contours
     thresh = get_thresh(ref)
     # Get contours of the reference image. Each should represent a digit
     # for matching against each frame in the video stream
     reference_contours, ref_boxes = get_contours(thresh, upper_thresh=9000)
     # Get the reference digits
-    ref_digits = define_reference_digits(reference_contours, ref_boxes)
+    ref_digits = define_reference_digits(ref, reference_contours, ref_boxes)
 
     return ref_digits
 
@@ -159,3 +163,65 @@ def text_areas_removed(frame):
     frame[516:516 + 29, 760:760 + 130] = (0, 0, 0)
 
     return frame
+
+
+def get_video_list(video_path):
+    videos = []
+    for (dirpath, dirnames, filenames) in walk(video_path):
+        videos.append(Video(dirpath, filenames))
+    return videos
+
+
+def manual_selection(frame, frame_number):
+    print("[*] Frame number {}. If a pollinator is present, hit `p`. Otherwise, press any other key to continue."
+          .format(frame_number))
+    cv2.imshow("Pollinator Check", frame)
+    key = cv2.waitKey(0) & 0xFF
+
+    if key == ord('p'):
+        pollinator_boxes = select_pollinator(frame)
+        for pollinator_box in pollinator_boxes:
+            x, y, w, h = pollinator_box
+            box = get_formatted_box(x, y, w, h)
+            pollinator = get_pollinator_area(frame, pollinator_box)
+
+            yield pollinator, box
+
+    # if the `q` key was pressed, break from the loop
+    elif key == ord("q"):
+        print("[!] Quitting!")
+        sys.exit()
+    else:
+        pass
+
+
+def get_filename(count, video):
+    file_name = os.path.join(video[:-4] + "_" + str(count) + ".png")
+    return file_name
+
+
+def select_pollinator(frame, multiple=False):
+    cv2.destroyAllWindows()
+    print("[!] Please select the area around the pollinator.")
+    if multiple:
+        pollinators = cv2.selectROIs("Pollinator Area Selection", frame, fromCenter=False,
+                                     showCrosshair=True)
+    else:
+        pollinator = cv2.selectROI("Pollinator Area Selection", frame, fromCenter=False,
+                                   showCrosshair=True)
+        # Convert tuple to ndarray so the same type is returned regardless
+        # of what the multiple parameter is set to.
+        pollinators = np.array([pollinator], np.int32)
+
+    return pollinators
+
+
+def get_formatted_box(x, y, w, h):
+    box = "{} {} {} {}".format(x, y, w, h)
+    return box
+
+
+def get_pollinator_area(frame, pollinator_box):
+    pollinator_area = frame[int(pollinator_box[1]):int(pollinator_box[1] + pollinator_box[3]),
+                            int(pollinator_box[0]):int(pollinator_box[0] + pollinator_box[2])]
+    return pollinator_area
