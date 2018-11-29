@@ -80,6 +80,7 @@ RUN usermod -s /bin/bash docker
 RUN usermod -aG sudo docker
 RUN chown -R docker:docker /code/
 
-#USER docker:docker
+# Create mount points for UofU CHPC Resources
+RUN mkdir /uufs /scratch
 
 CMD /bin/bash
