@@ -46,7 +46,7 @@ RUN mkdir /Downloads/opencv-3.4.3/build
 WORKDIR /Downloads/opencv-3.4.3/build
 
 RUN pip3 install --upgrade pip
-RUN pip3 install numpy
+RUN pip3 install numpy==1.14.5
 
 RUN cmake \
     -D CMAKE_BUILD_TYPE=RELEASE \
