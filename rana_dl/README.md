@@ -96,7 +96,7 @@ The above `singularity run` command creates an ephemeral container that will be 
 container to persist, pull it from the docker repository first:
 
 ```bash
-singularity pull --name rana.img docker://auslaner/rana_process:chpc
+singularity build rana.sif docker://auslaner/rana_process:chpc
 ```
 
 Then, as above, run the pulled image by name:
@@ -106,5 +106,5 @@ singularity run \
     --nv \
     -B ./data/Videos:/code/media/videos \
     -B ./data/photos:/code/media/pollinator_photos \
-    rana.img
+    rana.sif
 ```
