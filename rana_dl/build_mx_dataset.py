@@ -8,7 +8,7 @@ import progressbar
 from imutils import paths
 
 # initialize the labels
-from tensorflow.contrib.learn.python.learn.estimators._sklearn import train_test_split
+from sklearn.model_selection import train_test_split
 
 NUM_CLASSES = 2
 NUM_TEST_IMAGES = 50 * NUM_CLASSES
