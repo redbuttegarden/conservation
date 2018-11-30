@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 
 NUM_CLASSES = 2
 NUM_TEST_IMAGES = 50 * NUM_CLASSES
-NUM_VAL_IMAGES = 50 * NUM_CLASSES / 2
+NUM_VAL_IMAGES = int(50 * NUM_CLASSES / 2)
 
 MX_OUTPUT = os.path.expanduser("~/data")
 TRAIN_MX_LIST = os.path.sep.join([MX_OUTPUT, "lists/train.lst"])
