@@ -28,6 +28,9 @@ image_paths = sorted(list(paths.list_images("/code/media/pollinator_photos")))
 random.seed(42)
 random.shuffle(image_paths)
 
+# Fix for paths that include spaces
+image_paths = [img_path.replace("\\", "") for img_path in image_paths]
+
 # Loop over the input images
 for img_path in image_paths:
     # Extract the class label from the image path and update the
@@ -83,9 +86,7 @@ for (d_type, paths, labels, output_path) in datasets:
         # the mean of each channel in the image, then update
         # the respective lists
         if d_type == "train":
-            # Fix for paths that include spaces
-            img_path = path.replace("\\", "")
-            image = cv2.imread(img_path)
+            image = cv2.imread(path)
             _b, _g, _r = cv2.mean(image)[:3]
             r.append(_r)
             g.append(_g)
