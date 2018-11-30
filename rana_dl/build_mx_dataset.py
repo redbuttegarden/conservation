@@ -19,7 +19,7 @@ TRAIN_MX_LIST = os.path.sep.join([MX_OUTPUT, "lists/train.lst"])
 VAL_MX_LIST = os.path.sep.join([MX_OUTPUT, "lists/val.lst"])
 TEST_MX_LIST = os.path.sep.join([MX_OUTPUT, "lists/test.lst"])
 
-DATASET_MEAN = "/code/models/output/vggnet/pollinator_mean.json"
+DATASET_MEAN = os.path.expanduser("~/data/output/vggnet/pollinator_mean.json")
 
 labels = []
 
