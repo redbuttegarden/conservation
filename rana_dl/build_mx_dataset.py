@@ -104,3 +104,6 @@ channel_means = {"R": np.mean(r), "G": np.mean(g), "B": np.mean(b)}
 f = open(DATASET_MEAN, "w")
 f.write(json.dumps(channel_means))
 f.close()
+
+# Let the user know things finished successfully
+print("[*] Done!")
