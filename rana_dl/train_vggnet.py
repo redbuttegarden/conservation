@@ -20,6 +20,8 @@ from models.networks.mxvggnet import MxVGGNet
 ap = argparse.ArgumentParser()
 ap.add_argument("-c", "--checkpoints", required=True,
                 help="path to output checkpoint directory")
+ap.add_argument("-lr", "--learning-rate", default=1e-2,
+                help="learning rate to use for training")
 ap.add_argument("-p", "--prefix", required=True,
                 help="name of model prefix")
 ap.add_argument("-s", "--start-epoch", type=int, default=0,
@@ -59,7 +61,7 @@ val_iter = mx.io.ImageRecordIter(
 )
 
 # Initialize the optimizer
-opt = mx.optimizer.SGD(learning_rate=1e-2, momentum=0.9, wd=0.0005,
+opt = mx.optimizer.SGD(learning_rate=args["learning_rate"], momentum=0.9, wd=0.0005,
                        rescale_grad=1.0 / bat_size)
 
 # Construct the checkpoints path, initialize the model argument and
