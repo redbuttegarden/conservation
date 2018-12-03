@@ -6,20 +6,9 @@ import cv2
 import numpy as np
 import progressbar
 from imutils import paths
-
-# initialize the labels
 from sklearn.model_selection import train_test_split
 
-NUM_CLASSES = 2
-NUM_TEST_IMAGES = 50 * NUM_CLASSES
-NUM_VAL_IMAGES = int(50 * NUM_CLASSES / 2)
-
-MX_OUTPUT = os.path.expanduser("~/data")
-TRAIN_MX_LIST = os.path.sep.join([MX_OUTPUT, "lists/train.lst"])
-VAL_MX_LIST = os.path.sep.join([MX_OUTPUT, "lists/val.lst"])
-TEST_MX_LIST = os.path.sep.join([MX_OUTPUT, "lists/test.lst"])
-
-DATASET_MEAN = os.path.expanduser("~/data/output/vggnet/pollinator_mean.json")
+from models import config
 
 labels = []
 
@@ -46,19 +35,19 @@ labels = np.array(labels)
 
 # Partition the data into training and testing splits based on the
 # constants defined at the top of the file
-(train_x, test_x, train_y, test_y) = train_test_split(image_paths, labels, test_size=NUM_TEST_IMAGES, random_state=42)
+(train_x, test_x, train_y, test_y) = train_test_split(image_paths, labels, test_size=config.NUM_TEST_IMAGES, random_state=42)
 
 # Further split our training images so we have some validation images
 # left over that our final model won't have seen
-(train_x, val_x, train_y, val_y) = train_test_split(train_x, train_y, test_size=NUM_VAL_IMAGES, random_state=42)
+(train_x, val_x, train_y, val_y) = train_test_split(train_x, train_y, test_size=config.NUM_VAL_IMAGES, random_state=42)
 
 # Construct a list pairing the training, validation, and testing
 # image paths along with their corresponding labels and output
 # list files
 datasets = [
-    ("train", train_x, train_y, TRAIN_MX_LIST),
-    ("val", val_x, val_y, VAL_MX_LIST),
-    ("test", test_x, test_y, TEST_MX_LIST)
+    ("train", train_x, train_y, config.TRAIN_MX_LIST),
+    ("val", val_x, val_y, config.VAL_MX_LIST),
+    ("test", test_x, test_y, config.TEST_MX_LIST)
 ]
 
 # Initialize the list of red, green, and blue channel averages
@@ -102,7 +91,7 @@ for (d_type, paths, labels, output_path) in datasets:
 # to a JSON file
 print("[*] Serializing means...")
 channel_means = {"R": np.mean(r), "G": np.mean(g), "B": np.mean(b)}
-f = open(DATASET_MEAN, "w")
+f = open(config.DATASET_MEAN, "w")
 f.write(json.dumps(channel_means))
 f.close()
 

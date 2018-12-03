@@ -14,17 +14,8 @@ import os
 
 import mxnet as mx
 
+from models import config
 from models.networks.mxvggnet import MxVGGNet
-from build_mx_dataset import DATASET_MEAN, MX_OUTPUT
-
-NUM_CLASSES = 2
-
-TRAIN_MX_REC = os.path.sep.join([MX_OUTPUT, "rec/train.rec"])
-VAL_MX_REC = os.path.sep.join([MX_OUTPUT, "rec/val.rec"])
-TEST_MX_REC = os.path.sep.join([MX_OUTPUT, "rec/test.rec"])
-
-BATCH_SIZE = 64
-NUM_DEVICES = 1
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-c", "--checkpoints", required=True,
@@ -36,16 +27,16 @@ ap.add_argument("-s", "--start-epoch", type=int, default=0,
 args = vars(ap.parse_args())
 
 logging.basicConfig(level=logging.DEBUG,
-                    filename="training_{}.log".format(args["start_epoch"]),
+                    filename=os.path.sep.join([config.MX_OUTPUT, "training_{}".format(args["start_epoch"])]),
                     filemode="w")
 
 # Load the RGB means for the training set, then determine the batch
 # size
-means = json.loads(open(DATASET_MEAN).read())
-bat_size = BATCH_SIZE * NUM_DEVICES
+means = json.loads(open(config.DATASET_MEAN).read())
+bat_size = config.BATCH_SIZE * config.NUM_DEVICES
 
 train_iter = mx.io.ImageRecordIter(
-    path_imgrec=TRAIN_MX_REC,
+    path_imgrec=config.TRAIN_MX_REC,
     data_shape=(3, 84, 84),
     batch_size=bat_size,
     rand_crop=True,
@@ -55,11 +46,11 @@ train_iter = mx.io.ImageRecordIter(
     mean_r=means["R"],
     mean_g=means["G"],
     mean_b=means["B"],
-    preprocess_threads=NUM_DEVICES * 2
+    preprocess_threads=config.NUM_DEVICES * 2
 )
 
 val_iter = mx.io.ImageRecordIter(
-    path_imgrec=VAL_MX_REC,
+    path_imgrec=config.VAL_MX_REC,
     data_shape=(3, 84, 84),
     batch_size=bat_size,
     mean_r=means["R"],
@@ -83,7 +74,7 @@ aux_params = None
 if args["start_epoch"] <= 0:
     # Build the VGGNet architecture
     print("[INFO] Building network...")
-    model = MxVGGNet.build(NUM_CLASSES)
+    model = MxVGGNet.build(config.NUM_CLASSES)
 
 # Otherwise, a specific checkpoint was supplied
 else:
@@ -99,7 +90,7 @@ else:
 
 # Compile the model
 model = mx.model.FeedForward(
-    ctx=[mx.gpu(i) for i in range(0, NUM_DEVICES)],
+    ctx=[mx.gpu(i) for i in range(0, config.NUM_DEVICES)],
     symbol=model,
     initializer=mx.initializer.MSRAPrelu(),
     arg_params=arg_params,
