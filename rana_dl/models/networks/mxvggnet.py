@@ -60,7 +60,7 @@ class MxVGGNet:
         conv3_3 = mx.sym.Convolution(data=bn3_2, kernel=(3, 3),
                                      pad=(1, 1), num_filter=256, name="conv3_3")
         act3_3 = mx.sym.LeakyReLU(data=conv3_3, act_type="prelu",
-                                  name="act3_2")
+                                  name="act3_3")
         bn3_3 = mx.sym.BatchNorm(data=act3_3, name="bn3_3")
         conv3_4 = mx.sym.Convolution(data=bn3_3, kernel=(3, 3),
                                      pad=(1, 1), num_filter=256, name="conv3_4")
@@ -85,7 +85,7 @@ class MxVGGNet:
         conv4_3 = mx.sym.Convolution(data=bn4_2, kernel=(3, 3),
                                      pad=(1, 1), num_filter=512, name="conv4_3")
         act4_3 = mx.sym.LeakyReLU(data=conv4_3, act_type="prelu",
-                                  name="act4_2")
+                                  name="act4_3")
         bn4_3 = mx.sym.BatchNorm(data=act4_3, name="bn4_3")
         conv4_4 = mx.sym.Convolution(data=bn4_3, kernel=(3, 3),
                                      pad=(1, 1), num_filter=512, name="conv4_4")
@@ -110,7 +110,7 @@ class MxVGGNet:
         conv5_3 = mx.sym.Convolution(data=bn5_2, kernel=(3, 3),
                                      pad=(1, 1), num_filter=512, name="conv5_3")
         act5_3 = mx.sym.LeakyReLU(data=conv5_3, act_type="prelu",
-                                  name="act5_2")
+                                  name="act5_3")
         bn5_3 = mx.sym.BatchNorm(data=act5_3, name="bn5_3")
         conv5_4 = mx.sym.Convolution(data=bn5_3, kernel=(3, 3),
                                      pad=(1, 1), num_filter=512, name="conv5_4")
@@ -132,7 +132,7 @@ class MxVGGNet:
 
         # Block 7: FC => RELU layers
         fc2 = mx.sym.FullyConnected(data=do6, num_hidden=4096,
-                                    num="fc2")
+                                    name="fc2")
         act7_1 = mx.sym.LeakyReLU(data=fc2, act_type="prelu",
                                   name="act7_1")
         bn7_1 = mx.sym.BatchNorm(data=act7_1, name="bn7_1")
