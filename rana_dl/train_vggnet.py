@@ -14,8 +14,8 @@ import os
 
 import mxnet as mx
 
-from .models.networks.mxvggnet import MxVGGNet
-from .build_mx_dataset import DATASET_MEAN, MX_OUTPUT
+from models.networks.mxvggnet import MxVGGNet
+from build_mx_dataset import DATASET_MEAN, MX_OUTPUT
 
 NUM_CLASSES = 2
 
