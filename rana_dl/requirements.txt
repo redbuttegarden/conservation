@@ -9,7 +9,7 @@ Keras-Applications==1.0.6
 Keras-Preprocessing==1.0.5
 Markdown==3.0.1
 mock==2.0.0
-mxnet==1.3.1
+mxnet-cu90==1.3.1
 numpy==1.14.5
 peewee==3.7.0
 progressbar==2.5
