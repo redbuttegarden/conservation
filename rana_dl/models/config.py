@@ -16,3 +16,5 @@ VAL_MX_REC = os.path.sep.join([MX_OUTPUT, "rec/val.rec"])
 TEST_MX_REC = os.path.sep.join([MX_OUTPUT, "rec/test.rec"])
 
 DATASET_MEAN = os.path.expanduser("~/data/output/vggnet/pollinator_mean.json")
+
+LOG_OUTPUT = os.path.expanduser("~/data/output/vggnet")

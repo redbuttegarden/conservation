@@ -20,16 +20,18 @@ from models.networks.mxvggnet import MxVGGNet
 ap = argparse.ArgumentParser()
 ap.add_argument("-c", "--checkpoints", required=True,
                 help="path to output checkpoint directory")
-ap.add_argument("-lr", "--learning-rate", default=1e-2,
+ap.add_argument("-lr", "--learning-rate", type=float, default=1e-2,
                 help="learning rate to use for training")
 ap.add_argument("-p", "--prefix", required=True,
                 help="name of model prefix")
 ap.add_argument("-s", "--start-epoch", type=int, default=0,
                 help="epoch to restart training at")
+ap.add_argument("-e", "--end-epoch", type=int, default=80,
+                help="epoch to end training at")
 args = vars(ap.parse_args())
 
 logging.basicConfig(level=logging.DEBUG,
-                    filename=os.path.sep.join([config.MX_OUTPUT, "training_{}".format(args["start_epoch"])]),
+                    filename=os.path.sep.join([config.LOG_OUTPUT, "training_{}".format(args["start_epoch"])]),
                     filemode="w")
 
 # Load the RGB means for the training set, then determine the batch
@@ -98,12 +100,12 @@ model = mx.model.FeedForward(
     arg_params=arg_params,
     aux_params=aux_params,
     optimizer=opt,
-    num_epoch=80,
+    num_epoch=args["end_epoch"],
     begin_epoch=args["start_epoch"]
 )
 
 # Initialize the callbacks and evaluation metrics
-batch_end_CBs = [mx.callback.Speedometer(bat_size, 250)]
+batch_end_CBs = [mx.callback.Speedometer(bat_size, 50)]
 epoch_end_CBs = [mx.callback.do_checkpoint(checkpoints_path)]
 metrics = [mx.metric.Accuracy(), mx.metric.TopKAccuracy(top_k=5),
            mx.metric.CrossEntropy()]
