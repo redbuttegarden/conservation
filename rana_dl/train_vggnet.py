@@ -31,7 +31,7 @@ ap.add_argument("-e", "--end-epoch", type=int, default=80,
 args = vars(ap.parse_args())
 
 logging.basicConfig(level=logging.DEBUG,
-                    filename=os.path.sep.join([config.LOG_OUTPUT, "training_{}".format(args["start_epoch"])]),
+                    filename=os.path.sep.join([config.LOG_OUTPUT, "training_{}.log".format(args["start_epoch"])]),
                     filemode="w")
 
 # Load the RGB means for the training set, then determine the batch
