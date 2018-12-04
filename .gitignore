@@ -105,7 +105,6 @@ venv.bak/
 # mypy
 .mypy_cache/
 .idea/
-rana_dl/rana_processing/model/pollinator.model
 *.db
 rana_dl/rana_processing/scratch.py
 
@@ -113,3 +112,7 @@ rana_dl/rana_processing/scratch.py
 *.jpeg
 !rana_dl/rana_processing/ref_digits.png
 *.png
+
+# Ignore models
+rana_dl/rana_processing/model/pollinator.model
+*.params
