@@ -3,6 +3,17 @@ from peewee import *
 db = SqliteDatabase('log.db')
 
 
+class Frame(Model):
+    id = PrimaryKeyField()
+    directory = CharField()
+    video = CharField()
+    timestamp = DateTimeField(null=True)  # Null entries indicate frame time can't be processed
+    frame = IntegerField()
+
+    class Meta:
+        database = db
+
+
 class LogEntry(Model):
     id = PrimaryKeyField()
     directory = CharField()
@@ -22,6 +33,15 @@ class LogEntry(Model):
 
     class Meta:
         database = db
+
+
+@db.connection_context()
+def add_frame(directory, video, time, frame_number):
+    frame_info = Frame(directory=directory,
+                       video=video,
+                       timestamp=time,
+                       frame=frame_number)
+    frame_info.save()
 
 
 @db.connection_context()
@@ -64,5 +84,21 @@ def get_last_entry(manual, video):
 
 
 @db.connection_context()
+def get_processed_videos():
+    """
+    Returns a list of all videos that are referenced in the Frame table.
+    Note that this list could contain videos that were only partially
+    processed.
+    :return: list of videos in Frame table.
+    """
+    try:
+        videos = Frame.select(Frame.video)
+        videos = set(videos)
+        return videos
+    except DoesNotExist:
+        print("[*] No processed videos found.")
+
+
+@db.connection_context()
 def setup():
-    db.create_tables([LogEntry])
+    db.create_tables([Frame, LogEntry])

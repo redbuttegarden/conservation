@@ -10,9 +10,9 @@ from imutils.video import FileVideoStream
 
 from log import setup, add_entry, get_last_entry
 from pollinator_classifier import CLASSES, classify, create_classification_folders
-from model.test_model import get_label, model_classifier, pre_process
-from utils import get_contours, get_filename, get_formatted_box, get_frame_time, get_timestamp_box, manual_selection, \
-    process_reference_digits, get_video_list
+from model.test_keras_model import get_label, model_classifier, pre_process
+from utils import check_frame_time, compute_frame_time, get_contours, get_filename, get_formatted_box, \
+    get_timestamp_box, manual_selection, process_reference_digits, get_video_list
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-m", "--manual-selection", action="store_true",
@@ -153,37 +153,6 @@ def main():
             os.rename(os.path.join(vdir.directory, video), os.path.join(args["video_path"], "Processed Videos", video))
 
     cv2.destroyAllWindows()
-
-
-def check_frame_time(frame, frame_time, reference_digits, time_parsable, ts_box):
-    if frame_time is not None:
-        # If we succeeded in parsing the timestamp info in the frame, we set time_parsable to true
-        # so we don't need to select the timestamp area in subsequent frames (until the next video)
-        time_parsable = True
-    else:
-        # Try again
-        frame_time = compute_frame_time(frame, reference_digits, time_parsable, ts_box)
-    return frame_time, time_parsable
-
-
-def compute_frame_time(frame, reference_digits, time_parsable, ts_box):
-    # time_parsable is False until we can successfully parse the datetime in the frame
-    if time_parsable is False:
-        # We make the frame larger and cut it in half to make it easier for the user to select the
-        # timestamp area
-        larger = imutils.resize(frame[int(frame.shape[1] / 2):], width=1500)
-        # The ts_box is a tuple representing the points around the timestamp area that the user
-        # indicated
-        ts_box = get_timestamp_box(larger)
-        # We then attempt to parse the timestamp area in the frame based on the reference digits
-        frame_time = get_frame_time(larger, reference_digits, ts_box)
-
-    else:
-        # We need to keep resizing the frame so that the timestamp crop will match the ts_box that the
-        #  user supplied in the beginning of the video
-        larger = imutils.resize(frame[int(frame.shape[1] / 2):], width=1500)
-        frame_time = get_frame_time(larger, reference_digits, ts_box)
-    return frame_time, ts_box
 
 
 def analyze_motion(motion_map, frame, f_num, frame_time, kernel, thresh1, thresh2, video, count, vdir,

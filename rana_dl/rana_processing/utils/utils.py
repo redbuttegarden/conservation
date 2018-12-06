@@ -12,6 +12,17 @@ import numpy as np
 Video = namedtuple('Video', ['directory', 'files'])
 
 
+def check_frame_time(frame, frame_time, reference_digits, time_parsable, ts_box):
+    if frame_time is not None:
+        # If we succeeded in parsing the timestamp info in the frame, we set time_parsable to true
+        # so we don't need to select the timestamp area in subsequent frames (until the next video)
+        time_parsable = True
+    else:
+        # Try again
+        frame_time = compute_frame_time(frame, reference_digits, time_parsable, ts_box)
+    return frame_time, time_parsable
+
+
 def classify_digits(img, reference_digits):
     img = imutils.resize(img, height=150)
     img_thresh = get_thresh(img)
@@ -43,6 +54,26 @@ def classify_digits(img, reference_digits):
         output.append((max_score, roi))
 
     return output
+
+
+def compute_frame_time(frame, reference_digits, time_parsable, ts_box):
+    # time_parsable is False until we can successfully parse the datetime in the frame
+    if time_parsable is False:
+        # We make the frame larger and cut it in half to make it easier for the user to select the
+        # timestamp area
+        larger = imutils.resize(frame[int(frame.shape[1] / 2):], width=1500)
+        # The ts_box is a tuple representing the points around the timestamp area that the user
+        # indicated
+        ts_box = get_timestamp_box(larger)
+        # We then attempt to parse the timestamp area in the frame based on the reference digits
+        frame_time = get_frame_time(larger, reference_digits, ts_box)
+
+    else:
+        # We need to keep resizing the frame so that the timestamp crop will match the ts_box that the
+        #  user supplied in the beginning of the video
+        larger = imutils.resize(frame[int(frame.shape[1] / 2):], width=1500)
+        frame_time = get_frame_time(larger, reference_digits, ts_box)
+    return frame_time, ts_box
 
 
 def define_reference_digits(ref, ref_cnts, bounding_boxes):
