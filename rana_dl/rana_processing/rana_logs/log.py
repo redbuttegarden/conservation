@@ -1,6 +1,7 @@
+import os
 from peewee import *
 
-db = SqliteDatabase('log.db')
+db = SqliteDatabase(os.path.join(os.path.dirname(__file__), 'database/log.db'))
 
 
 class Frame(Model):
@@ -84,6 +85,14 @@ def get_last_entry(manual, video):
 
 
 @db.connection_context()
+def get_last_processed_frame(video):
+    video_frames = Frame.select().where(Frame.video == video)
+    f_nums = [vf.frame for vf in video_frames]
+    last_frame = max(f_nums)
+    return last_frame
+
+
+@db.connection_context()
 def get_processed_videos():
     """
     Returns a list of all videos that are referenced in the Frame table.
@@ -92,8 +101,8 @@ def get_processed_videos():
     :return: list of videos in Frame table.
     """
     try:
-        videos = Frame.select(Frame.video)
-        videos = set(videos)
+        videos = Frame.select()
+        videos = set([vid.video for vid in videos])
         return videos
     except DoesNotExist:
         print("[*] No processed videos found.")
