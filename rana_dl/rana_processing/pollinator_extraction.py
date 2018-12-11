@@ -5,14 +5,13 @@ import cv2
 import numpy as np
 import os
 
-import imutils
 from imutils.video import FileVideoStream
 
-from log import setup, add_entry, get_last_entry
+from rana_logs.log import setup, add_log_entry, get_last_entry
 from pollinator_classifier import CLASSES, classify, create_classification_folders
 from model.test_keras_model import get_label, model_classifier, pre_process
-from utils import check_frame_time, compute_frame_time, get_contours, get_filename, get_formatted_box, \
-    get_timestamp_box, manual_selection, process_reference_digits, get_video_list
+from utils.utils import check_frame_time, compute_frame_time, get_contours, get_filename, get_formatted_box, \
+    manual_selection, process_reference_digits, get_video_list
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-m", "--manual-selection", action="store_true",
@@ -45,7 +44,7 @@ def main():
 
     for vdir in get_video_list(args["video_path"]):
         for video in vdir.files:
-            last_log = check_logs(manual, video)
+            last_log = get_last_entry(manual, video)
             if last_log:
                 count = last_log.id
             else:
@@ -106,15 +105,15 @@ def main():
                                       "Skipping frame...")
                                 continue
 
-                            add_entry(directory=vdir.directory,
-                                      video=video,
-                                      time=frame_time,
-                                      classification="Pollinator",
-                                      size=area,
-                                      bbox=box,
-                                      frame_number=f_num,
-                                      name=file_name,
-                                      manual=manual)
+                            add_log_entry(directory=vdir.directory,
+                                          video=video,
+                                          time=frame_time,
+                                          classification="Pollinator",
+                                          size=area,
+                                          bbox=box,
+                                          frame_number=f_num,
+                                          name=file_name,
+                                          manual=manual)
                             count += 1
                 else:
                     # This block is executed once per video
@@ -222,7 +221,7 @@ def analyze_motion(motion_map, frame, f_num, frame_time, kernel, thresh1, thresh
                     all_neg = True
                     classification = CLASSES[1]
                 # Whatever the user decided is recorded in the log database
-                add_entry(directory=vdir.directory,
+                add_log_entry(directory=vdir.directory,
                           video=video,
                           time=frame_time,
                           name=file_name,
@@ -233,7 +232,7 @@ def analyze_motion(motion_map, frame, f_num, frame_time, kernel, thresh1, thresh
             else:
                 classification = CLASSES[1]
                 # All negative is true, so we know every contour is not a pollinator
-                add_entry(directory=vdir.directory,
+                add_log_entry(directory=vdir.directory,
                           video=video,
                           time=frame_time,
                           name=file_name,
@@ -265,7 +264,7 @@ def analyze_motion(motion_map, frame, f_num, frame_time, kernel, thresh1, thresh
                 # Draw a rectangle around the potential pollinator
                 cv2.rectangle(frame, (int(x), int(y)), (int(x) + int(w), int(y) + int(h)), (0, 255, 0), 1)
 
-                add_entry(directory=vdir.directory,
+                add_log_entry(directory=vdir.directory,
                           video=video,
                           time=frame_time,
                           classification="Pollinator",
@@ -281,14 +280,6 @@ def analyze_motion(motion_map, frame, f_num, frame_time, kernel, thresh1, thresh
         cv2.waitKey(0)
 
     return count
-
-
-def check_logs(manual, video):
-    last_update = get_last_entry(manual, video)
-    if last_update is not None:
-        print("[*] Last entry from", last_update.timestamp)
-        print("[*] Waiting for frame that has not been processed...")
-    return last_update
 
 
 if __name__ == "__main__":
