@@ -19,7 +19,7 @@ class LogEntry(Model):
     id = PrimaryKeyField()
     directory = CharField()
     video = CharField()
-    timestamp = DateTimeField()
+    timestamp = DateTimeField(null=True)
     name = CharField(null=True)
     classification = CharField()
     probability = FloatField(null=True)
@@ -31,6 +31,7 @@ class LogEntry(Model):
     size_class = CharField(null=True)
     frame = IntegerField()
     manual = BooleanField(default=False)
+    img_path = CharField(null=True)
 
     class Meta:
         database = db
@@ -46,8 +47,8 @@ def add_frame(directory, video, time, frame_number):
 
 
 @db.connection_context()
-def add_entry(directory, video, time, classification, size, bbox, frame_number, name=None, proba=None, genus=None,
-              species=None, behavior=None, size_class=None, manual=False):
+def add_log_entry(directory, video, time, classification, size, bbox, frame_number, name=None, proba=None, genus=None,
+                  species=None, behavior=None, size_class=None, manual=False, img_path=None):
     entry = LogEntry(directory=directory,
                      video=video,
                      timestamp=time,
@@ -61,7 +62,9 @@ def add_entry(directory, video, time, classification, size, bbox, frame_number, 
                      bbox=bbox,
                      size_class=size_class,
                      frame=frame_number,
-                     manual=int(manual))
+                     manual=int(manual),
+                     img_path=img_path
+                     )
     entry.save()
 
 
