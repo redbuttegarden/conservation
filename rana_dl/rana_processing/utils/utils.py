@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 from collections import namedtuple
 from datetime import datetime
@@ -197,14 +198,56 @@ def text_areas_removed(frame):
 
 
 def get_video_list(video_path):
+    """
+    Returns a randomly shuffled list of filenames in the given
+    directory path. Note that despite the function name, there is
+    currently no validation of file types to determine if the
+    returned files are actually videos.
+    :param video_path: Path to directory to walk for file paths.
+    :return: A randomly shuffled list of file paths.
+    """
     videos = []
     for (dirpath, dirnames, filenames) in walk(video_path):
         videos.append(Video(dirpath, filenames))
+
+    random.shuffle(videos)
     return videos
 
 
 def manual_selection(frame, frame_number):
-    print("[*] Frame number {}. If a pollinator is present, hit `p`. Otherwise, press any other key to continue."
+    """
+    Allows for manual selection of a pollinator in a given frame. The
+    user is presented with a cv2 window displaying the frame in
+    question and presented with several options for how to label it.
+
+    The `p` key can be pressed to indicate that a pollinator is present
+    in the frame and opens a new window with the same frame, where the
+    user can draw a box around the pollinator. In this scenario, the
+    function returns both the numpy array representing the cropped
+    image drawn by the user along with the formatted bounding box
+    coordinates of the crop in the form of "X Y W H".
+
+    The `n` key can be pressed to indicate that no pollinators are
+    present in the frame. In this case, pollinator is returned False
+    and box is returned None.
+
+    Pressing any other key passes and returns nothing.
+    :param frame: The numpy array image of the entire frame.
+    :param frame_number: The frame number in the video. Used only to
+    help orient the user as to where they are in the video stream.
+    :return: When the frame has been marked as containing a pollinator,
+    returns a numpy array image of the selected pollinator and the
+    associated bounding box information as a formatted string. When
+    the frame has been marked as not containing a pollinator,
+    pollinator is returned as False and bounding box info as None.
+    """
+    print("""
+[*] Frame number {}. 
+    If a pollinator is present, hit `p` to select its location. 
+    If the frame DOES NOT have a pollinator, hit `n`.
+    Press `q` to exit program.
+    Otherwise, press any other key to continue.
+        """
           .format(frame_number))
     cv2.imshow("Pollinator Check", frame)
     key = cv2.waitKey(0) & 0xFF
@@ -218,6 +261,11 @@ def manual_selection(frame, frame_number):
 
             yield pollinator, box
 
+    elif key == ord('n'):
+        pollinator = False
+        box = None
+        yield pollinator, box
+
     # if the `q` key was pressed, break from the loop
     elif key == ord("q"):
         print("[!] Quitting!")
@@ -226,8 +274,11 @@ def manual_selection(frame, frame_number):
         pass
 
 
-def get_filename(count, video):
-    file_name = os.path.join(video[:-4] + "_" + str(count) + ".png")
+def get_filename(frame_number, count, video, frame=False):
+    if frame:
+        file_name = "-".join([video[:-4], "frame", str(frame_number), str(count)]) + ".png"
+    else:
+        file_name = "-".join([video[:-4], str(frame_number), str(count)]) + ".png"
     return file_name
 
 
