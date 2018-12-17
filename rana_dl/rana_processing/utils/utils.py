@@ -187,6 +187,8 @@ def process_timestamp_area(reference_digits, timestamp_area):
         return timestamp
     except ValueError:
         print("[!] Could not process time. Please try again.")
+        timestamp = None
+        return timestamp
 
 
 def text_areas_removed(frame):
