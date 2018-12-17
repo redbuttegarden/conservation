@@ -27,7 +27,7 @@ def main(arguments):
             count = 0
 
             # Allow the buffer some time to fill
-            time.sleep(1.0)
+            time.sleep(2.0)
 
             while vs.more():
                 frame = vs.read()
@@ -42,7 +42,7 @@ def main(arguments):
                               .format(f_num, last_log.frame + 1))
                         # Continue to the next frame if the logs indicate we have analyzed frames later than this
                         # one
-                        time.sleep(0.1)
+                        time.sleep(0.01)  # Sleep here so we don't overtake the buffer
                         continue
 
                 for pollinator, box in manual_selection(frame, f_num):
