@@ -20,7 +20,7 @@ class LogEntry(Model):
     directory = CharField()
     video = CharField()
     timestamp = DateTimeField(null=True)
-    name = CharField(null=True)
+    name = CharField(null=True)  # file name
     classification = CharField()
     probability = FloatField(null=True)
     genus = CharField(null=True)
@@ -32,6 +32,21 @@ class LogEntry(Model):
     frame = IntegerField()
     manual = BooleanField(default=False)
     img_path = CharField(null=True)
+
+    class Meta:
+        database = db
+
+
+class ProcessedVideo(Model):
+    """
+    Table to track videos that have been fully processed by the
+    frame_times script, allowing us to determine the total number of
+    frames in the entire video.
+    """
+    id = PrimaryKeyField()
+    directory = CharField()
+    video = CharField()
+    total_frames = IntegerField()
 
     class Meta:
         database = db
@@ -69,6 +84,15 @@ def add_log_entry(directory, video, time, classification, size, bbox, frame_numb
 
 
 @db.connection_context()
+def add_processed_video(directory, video, total_frames):
+    video = ProcessedVideo(directory=directory,
+                           video=video,
+                           total_frames=total_frames,
+                           )
+    video.save()
+
+
+@db.connection_context()
 def get_last_entry(manual, video):
     """
     Returns the last entry in the database that was from the
@@ -96,7 +120,7 @@ def get_last_processed_frame(video):
 
 
 @db.connection_context()
-def get_processed_videos():
+def get_analyzed_videos():
     """
     Returns a list of all videos that are referenced in the Frame table.
     Note that this list could contain videos that were only partially
@@ -108,9 +132,26 @@ def get_processed_videos():
         videos = set([vid.video for vid in videos])
         return videos
     except DoesNotExist:
+        print("[*] No analyzed videos found.")
+
+
+@db.connection_context()
+def get_processed_videos():
+    """
+    Returns a list of videos that have been fulled processed.
+    Assumes that all videos present in the ProcessedVideo table
+    are in fact, fully processed.
+    :return: A list of all videos in the ProcessedVideo table.
+    """
+    try:
+        videos = ProcessedVideo.select()
+        videos = set([vid.video for vid in videos])
+        return videos
+
+    except DoesNotExist:
         print("[*] No processed videos found.")
 
 
 @db.connection_context()
 def setup():
-    db.create_tables([Frame, LogEntry])
+    db.create_tables([Frame, LogEntry, ProcessedVideo])
