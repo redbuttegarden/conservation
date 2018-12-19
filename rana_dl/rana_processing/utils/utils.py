@@ -3,6 +3,7 @@ import random
 import sys
 from collections import namedtuple
 from datetime import datetime
+import logging
 from os import walk
 
 import cv2
@@ -11,17 +12,7 @@ from imutils.contours import sort_contours
 import numpy as np
 
 Video = namedtuple('Video', ['directory', 'files'])
-
-
-def check_frame_time(frame, frame_time, reference_digits, time_parsable, ts_box):
-    if frame_time is not None:
-        # If we succeeded in parsing the timestamp info in the frame, we set time_parsable to true
-        # so we don't need to select the timestamp area in subsequent frames (until the next video)
-        time_parsable = True
-    else:
-        # Try again
-        frame_time = compute_frame_time(frame, reference_digits, time_parsable, ts_box)
-    return frame_time, time_parsable
+logging.basicConfig(level=logging.DEBUG)  # TODO change when no longer necessary
 
 
 def classify_digits(img, reference_digits):
@@ -216,7 +207,7 @@ def get_video_list(video_path):
     return videos
 
 
-def manual_selection(frame, frame_number):
+def manual_selection(frame_number, previous_frames):
     """
     Allows for manual selection of a pollinator in a given frame. The
     user is presented with a cv2 window displaying the frame in
@@ -234,7 +225,8 @@ def manual_selection(frame, frame_number):
     and box is returned None.
 
     Pressing any other key passes and returns nothing.
-    :param frame: The numpy array image of the entire frame.
+    :param previous_frames: List of previous frames including current
+    frame.
     :param frame_number: The frame number in the video. Used only to
     help orient the user as to where they are in the video stream.
     :return: When the frame has been marked as containing a pollinator,
@@ -243,37 +235,73 @@ def manual_selection(frame, frame_number):
     the frame has been marked as not containing a pollinator,
     pollinator is returned as False and bounding box info as None.
     """
-    print("""
-[*] Frame number {}. 
-    If a pollinator is present, hit `p` to select its location. 
-    If the frame DOES NOT have a pollinator, hit `n`.
-    Press `q` to exit program.
-    Otherwise, press any other key to continue.
-        """
-          .format(frame_number))
-    cv2.imshow("Pollinator Check", frame)
-    key = cv2.waitKey(0) & 0xFF
+    wname = "Pollinator Check"
+    cursor = 0
+    prev_len = len(previous_frames)
+    while True:
+        try:
+            frame = previous_frames[cursor]
+        except IndexError as e:
+            logging.error("[!] An unexpected IndexError has occurred: {}".format(e))
 
-    if key == ord('p'):
-        pollinator_boxes = select_pollinator(frame)
-        for pollinator_box in pollinator_boxes:
+        cv2.imshow(wname, frame)
+
+        print("""
+[*] Frame number {}. 
+
+    [Pollinator Selection]
+    If a pollinator is present, press `p` to select its location. 
+    If the frame DOES NOT have a pollinator, press `n`.
+    
+    [Navigation]
+    To view previous frames, press `a`. You may rewind up to 99 frames.
+    To move forward through previous frames, press `d`.
+    To skip back to the most recent frame, press `w`.
+    Otherwise, press any other key to continue.
+    
+    Press `q` to exit program.
+    """
+              .format(frame_number - cursor))
+
+        key = cv2.waitKey(0) & 0xFF
+
+        logging.debug("Key: {}".format(str(key)))
+
+        if key == ord("p"):
+            pollinator_box = select_pollinator(frame)
             x, y, w, h = pollinator_box
             box = get_formatted_box(x, y, w, h)
             pollinator = get_pollinator_area(frame, pollinator_box)
 
-            yield pollinator, box
+            return pollinator, box, frame
 
-    elif key == ord('n'):
-        pollinator = False
-        box = None
-        yield pollinator, box
+        elif key == ord("n"):
+            pollinator = False
+            box = None
+            return pollinator, box, frame
 
-    # if the `q` key was pressed, break from the loop
-    elif key == ord("q"):
-        print("[!] Quitting!")
-        sys.exit()
-    else:
-        pass
+        # if the `q` key was pressed, break from the loop
+        elif key == ord("q"):
+            print("[!] Quitting!")
+            sys.exit()
+
+        elif key == ord("a"):  # Go back
+            if cursor < prev_len:
+                cursor += 1
+            else:
+                print(["[!] Previous frames exhausted! Can't rewind any further."])
+        elif key == ord("d"):  # Go forward
+            if cursor > 0:
+                cursor -= 1
+            else:
+                # Already at most recent frame. Return the function so
+                # we can get the next one
+                break
+        elif key == ord("w"):
+            # Jump to most recent frame
+            cursor = 0
+        else:
+            return None, None, None
 
 
 def get_filename(frame_number, count, video, frame=False):
@@ -284,20 +312,12 @@ def get_filename(frame_number, count, video, frame=False):
     return file_name
 
 
-def select_pollinator(frame, multiple=False):
+def select_pollinator(frame):
     cv2.destroyAllWindows()
     print("[!] Please select the area around the pollinator.")
-    if multiple:
-        pollinators = cv2.selectROIs("Pollinator Area Selection", frame, fromCenter=False,
-                                     showCrosshair=True)
-    else:
-        pollinator = cv2.selectROI("Pollinator Area Selection", frame, fromCenter=False,
-                                   showCrosshair=True)
-        # Convert tuple to ndarray so the same type is returned regardless
-        # of what the multiple parameter is set to.
-        pollinators = np.array([pollinator], np.int32)
+    pollinator = cv2.selectROI("Pollinator Area Selection", frame, fromCenter=False, showCrosshair=True)
 
-    return pollinators
+    return pollinator
 
 
 def get_formatted_box(x, y, w, h):
