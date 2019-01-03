@@ -22,6 +22,7 @@ class LogEntry(Model):
     timestamp = DateTimeField(null=True)
     name = CharField(null=True)  # file name
     classification = CharField()
+    pol_id = CharField(null=True)  # General pollinator ID
     probability = FloatField(null=True)
     genus = CharField(null=True)
     species = CharField(null=True)
@@ -37,16 +38,18 @@ class LogEntry(Model):
         database = db
 
 
-class ProcessedVideo(Model):
+class Video(Model):
     """
-    Table to track videos that have been fully processed by the
-    frame_times script, allowing us to determine the total number of
-    frames in the entire video.
+    Rana video information.
     """
     id = PrimaryKeyField()
     directory = CharField()
     video = CharField()
+    site = CharField()
+    plant = CharField()
     total_frames = IntegerField()
+    frame_times_processed = BooleanField()
+    pollinators_processed = BooleanField()
 
     class Meta:
         database = db
@@ -62,13 +65,14 @@ def add_frame(directory, video, time, frame_number):
 
 
 @db.connection_context()
-def add_log_entry(directory, video, time, classification, size, bbox, frame_number, name=None, proba=None, genus=None,
-                  species=None, behavior=None, size_class=None, manual=False, img_path=None):
+def add_log_entry(directory, video, time, classification, size, bbox, frame_number, name=None, pollinator_id=None,
+                  proba=None, genus=None, species=None, behavior=None, size_class=None, manual=False, img_path=None):
     entry = LogEntry(directory=directory,
                      video=video,
                      timestamp=time,
                      name=name,
                      classification=classification,
+                     pol_id=pollinator_id,
                      probability=proba,
                      genus=genus,
                      species=species,
@@ -84,12 +88,11 @@ def add_log_entry(directory, video, time, classification, size, bbox, frame_numb
 
 
 @db.connection_context()
-def add_processed_video(directory, video, total_frames):
-    video = ProcessedVideo(directory=directory,
-                           video=video,
-                           total_frames=total_frames,
-                           )
-    video.save()
+def add_processed_video(video, total_frames):
+    entry = Video.get(Video.video == video)
+    entry.frame_times_processed = True
+    entry.total_frames = total_frames
+    entry.save()
 
 
 @db.connection_context()
@@ -138,13 +141,13 @@ def get_analyzed_videos():
 @db.connection_context()
 def get_processed_videos():
     """
-    Returns a list of videos that have been fulled processed.
-    Assumes that all videos present in the ProcessedVideo table
-    are in fact, fully processed.
-    :return: A list of all videos in the ProcessedVideo table.
+    Returns a list of videos that have had their frame times
+    fully processed.
+    :return: A list of videos that have had their frame times
+    processed.
     """
     try:
-        videos = ProcessedVideo.select()
+        videos = Video.select().where(Video.frame_times_processed is True)
         videos = set([vid.video for vid in videos])
         return videos
 
@@ -153,5 +156,24 @@ def get_processed_videos():
 
 
 @db.connection_context()
+def populate_video_table(video_list):
+    count = Video.select().count()
+    if count == 0:
+        for vdir in video_list:
+            split = vdir.directory.split("/")[-2:]
+            site = split[0]
+            plant = split[1]
+            for video in vdir.files:
+                entry = Video(directory=vdir.directory,
+                              video=video,
+                              site=site,
+                              plant=plant,
+                              total_frames=0,
+                              frame_times_processed=False,
+                              pollinators_processed=False)
+                entry.save()
+
+
+@db.connection_context()
 def setup():
-    db.create_tables([Frame, LogEntry, ProcessedVideo])
+    db.create_tables([Frame, LogEntry, Video])

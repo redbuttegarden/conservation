@@ -6,7 +6,7 @@ from imutils.video import FileVideoStream
 
 from rana_logs.log import add_frame, get_last_processed_frame, setup, get_analyzed_videos, get_processed_videos, \
     add_processed_video
-from utils.utils import check_frame_time, compute_frame_time, get_video_list, \
+from utils.utils import compute_frame_time, get_video_list, \
     process_reference_digits
 
 
@@ -54,35 +54,29 @@ def process_video(analyzed_videos, reference_digits, time_parsable, ts_box, vdir
     while vs.more():
         frame = vs.read()
 
-        # If the frame is None, the video is done being processed and we can move to the next one
-        if frame is None:
-            print("{} is done being processed. Adding to database of processed videos...")
-            add_processed_video(directory=vdir.directory,
-                                video=video,
-                                total_frames=f_num)
-            break
+        f_num += 1
+        if (last_processed_frame is not None) and (f_num <= last_processed_frame):
+            print("[*] Current frame is {}. Waiting for {}...".format(f_num, last_processed_frame + 1))
+            # Give video buffer time to fill so we don't overtake it
+            time.sleep(0.01)
+            continue
         else:
-            f_num += 1
-            if (last_processed_frame is not None) and (f_num <= last_processed_frame):
-                print("[*] Current frame is {}. Waiting for {}...".format(f_num, last_processed_frame + 1))
-                # Give video buffer time to fill so we don't overtake it
-                time.sleep(0.01)
-                continue
-            else:
-                # Process the timestamp area in the video
-                frame_time, ts_box = compute_frame_time(frame, reference_digits, time_parsable, ts_box)
-                frame_time, time_parsable = check_frame_time(frame, frame_time, reference_digits, time_parsable,
-                                                             ts_box)
+            # Process the timestamp area in the video
+            frame_time, ts_box = compute_frame_time(frame, reference_digits, time_parsable, ts_box)
+            if frame_time is not None:
+                time_parsable = True
 
-                print(frame_time)  # TODO remove after debugging
-                if frame_time is None:
-                    print("[!] Failed to process time, probably because the frame is distorted.")
+            if frame_time is None:
+                print("[!] Failed to process time, probably because the frame is distorted.")
 
-                # Add the frame information to the logging database
-                add_frame(directory=vdir,
-                          video=video,
-                          time=frame_time,
-                          frame_number=f_num)
+            # Add the frame information to the logging database
+            add_frame(directory=vdir,
+                      video=video,
+                      time=frame_time,
+                      frame_number=f_num)
+
+    print("{} is done being processed. Adding to database of processed videos...")
+    add_processed_video(video=video, total_frames=f_num)
     vs.stop()
 
 
