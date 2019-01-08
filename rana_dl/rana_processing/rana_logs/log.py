@@ -1,7 +1,7 @@
 import os
 from peewee import *
 
-db = SqliteDatabase(os.path.join(os.path.dirname(__file__), 'database/log.db'))
+db = SqliteDatabase(os.path.join(os.path.dirname(__file__), 'database' + os.path.sep + 'log.db'))
 
 
 class Frame(Model):
@@ -50,6 +50,23 @@ class Video(Model):
     total_frames = IntegerField()
     frame_times_processed = BooleanField()
     pollinators_processed = BooleanField()
+
+    class Meta:
+        database = db
+
+
+class DiscreteVisitor(Model):
+    """
+    Tracks the number of unique visitors within each video.
+    """
+    id = PrimaryKeyField()
+    video = ForeignKeyField(Video, backref="discrete_visitors")
+    pol_id = CharField()
+    num_visits = IntegerField()
+    behavior = CharField()
+    size = CharField()
+    ppt_slide = IntegerField(null=True)
+    notes = TextField(null=True)
 
     class Meta:
         database = db
@@ -176,4 +193,4 @@ def populate_video_table(video_list):
 
 @db.connection_context()
 def setup():
-    db.create_tables([Frame, LogEntry, Video])
+    db.create_tables([DiscreteVisitor, Frame, LogEntry, Video])
