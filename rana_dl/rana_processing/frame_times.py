@@ -6,8 +6,7 @@ from imutils.video import FileVideoStream
 
 from rana_logs.log import add_frame, get_last_processed_frame, setup, get_analyzed_videos, get_processed_videos, \
     add_processed_video
-from utils.utils import compute_frame_time, get_video_list, \
-    process_reference_digits
+from utils.utils import compute_frame_time, get_video_list, process_reference_digits
 
 
 def main(arguments):
@@ -61,8 +60,13 @@ def process_video(analyzed_videos, reference_digits, time_parsable, ts_box, vdir
             time.sleep(0.01)
             continue
         else:
-            # Process the timestamp area in the video
-            frame_time, ts_box = compute_frame_time(frame, reference_digits, time_parsable, ts_box)
+            try:
+                # Process the timestamp area in the video
+                frame_time, ts_box = compute_frame_time(frame, reference_digits, time_parsable, ts_box)
+            except AttributeError:
+                if frame is None:
+                    print("[!] Frame was none.")
+
             if frame_time is not None:
                 time_parsable = True
 
@@ -75,7 +79,7 @@ def process_video(analyzed_videos, reference_digits, time_parsable, ts_box, vdir
                       time=frame_time,
                       frame_number=f_num)
 
-    print("{} is done being processed. Adding to database of processed videos...")
+    print("{} is done being processed. Adding to database of processed videos...".format(video))
     add_processed_video(video=video, total_frames=f_num)
     vs.stop()
 
