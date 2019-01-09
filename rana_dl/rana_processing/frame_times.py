@@ -66,11 +66,14 @@ def process_video(analyzed_videos, reference_digits, time_parsable, ts_box, vdir
             except AttributeError:
                 if frame is None:
                     print("[!] Frame was none.")
+                    break
+
+                print("Something went wrong. Trying again...")
+                continue
 
             if frame_time is not None:
                 time_parsable = True
-
-            if frame_time is None:
+            else:
                 print("[!] Failed to process time, probably because the frame is distorted.")
 
             # Add the frame information to the logging database
