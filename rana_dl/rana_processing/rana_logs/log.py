@@ -142,14 +142,14 @@ def get_last_processed_frame(video):
 @db.connection_context()
 def get_analyzed_videos():
     """
-    Returns a list of all videos that are referenced in the Frame table.
-    Note that this list could contain videos that were only partially
-    processed.
-    :return: list of videos in Frame table.
+    Returns a list of all video filenames that are referenced in the
+    Frame table. Note that this list could contain videos that were
+    only partially processed.
+    :return: list of unique video filenames in Frame table.
     """
     try:
-        videos = Frame.select()
-        videos = set([vid.video for vid in videos])
+        frames = Frame.select()
+        videos = set([frame.video for frame in frames.iterator()])
         return videos
     except DoesNotExist:
         print("[*] No analyzed videos found.")
@@ -164,7 +164,7 @@ def get_processed_videos():
     processed.
     """
     try:
-        videos = Video.select().where(Video.frame_times_processed is True)
+        videos = Video.select().where(Video.frame_times_processed == 1)
         videos = set([vid.video for vid in videos])
         return videos
 
