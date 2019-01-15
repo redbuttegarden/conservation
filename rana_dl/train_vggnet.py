@@ -41,11 +41,11 @@ bat_size = config.BATCH_SIZE * config.NUM_DEVICES
 
 train_iter = mx.io.ImageRecordIter(
     path_imgrec=config.TRAIN_MX_REC,
-    data_shape=(3, 224, 224),
+    data_shape=(3, 480, 640),
     batch_size=bat_size,
     rand_crop=True,
     rand_mirror=True,
-    rotate=15,
+    #rotate=15,
     max_shear_ratio=0.1,
     mean_r=means["R"],
     mean_g=means["G"],
@@ -55,7 +55,7 @@ train_iter = mx.io.ImageRecordIter(
 
 val_iter = mx.io.ImageRecordIter(
     path_imgrec=config.VAL_MX_REC,
-    data_shape=(3, 224, 224),
+    data_shape=(3, 480, 640),
     batch_size=bat_size,
     mean_r=means["R"],
     mean_g=means["G"],
