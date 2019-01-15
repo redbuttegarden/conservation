@@ -107,8 +107,7 @@ model = mx.model.FeedForward(
 # Initialize the callbacks and evaluation metrics
 batch_end_CBs = [mx.callback.Speedometer(bat_size, 50)]
 epoch_end_CBs = [mx.callback.do_checkpoint(checkpoints_path)]
-metrics = [mx.metric.Accuracy(), mx.metric.TopKAccuracy(top_k=5),
-           mx.metric.CrossEntropy()]
+metrics = [mx.metric.Accuracy(), mx.metric.CrossEntropy()]
 
 # Train the network
 print("[INFO] Training network...")
