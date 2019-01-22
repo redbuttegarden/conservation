@@ -21,7 +21,7 @@ means = json.loads(open(config.DATASET_MEAN).read())
 # Construct the testing image iterator
 test_iter = mx.io.ImageRecordIter(
     path_imgrec=config.TEST_MX_REC,
-    data_shape=(3, 84, 84),
+    data_shape=(3, 480, 640),
     batch_size=config.BATCH_SIZE,
     mean_r=means["R"],
     mean_g=means["G"],
@@ -45,9 +45,8 @@ model = mx.model.FeedForward(
 
 # Make predictions on the testing data
 print("[INFO] Predicting on test data...")
-metrics = [mx.metric.Accuracy(), mx.metric.TopKAccuracy(top_k=5)]
-(rank1, rank5) = model.score(test_iter, eval_metric=metrics)
+metrics = [mx.metric.Accuracy()]
+rank1 = model.score(test_iter, eval_metric=metrics)
 
-# Display the rank-1 and rank-5 accuracies
+# Display the rank-1 accuracies
 print("[INFO] rank-1: {:.2f}%".format(rank1 * 100))
-print("[INFO] rank-5: {:.2f}%".format(rank5 * 100))
