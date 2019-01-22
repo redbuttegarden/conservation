@@ -25,19 +25,19 @@ logs = [
 
 # Initialize the list of train rank-1 and rank-5 accuracies, along
 # with the training loss
-(train_rank_1, train_rank_5, train_loss) = ([], [], [])
+train_rank_1, train_loss = [], []
 
 # Initialize the list of validation rank-1 and rank-5 accuracies,
 # along with the validation loss
-(val_rank_1, val_rank_5, val_loss) = ([], [], [])
+val_rank_1, val_loss = [], []
 
 # Loop over the training logs
 for (i, (end_epoch, p)) in enumerate(logs):
     # Load the contents of the log file, then initialize the batch
     # lists for the training and validation data
     rows = open(p).read().strip()
-    (b_train_rank_1, b_train_rank_5, b_train_loss) = ([], [], [])
-    (b_val_rank_1, b_val_rank_5, b_val_loss) = ([], [], [])
+    b_train_rank_1, b_train_loss = [], []
+    b_val_rank_1, b_val_loss = [], []
 
     # Grab the set of training epochs
     epochs = set(re.findall(r'Epoch\[(\d+)\]', rows))
@@ -45,29 +45,24 @@ for (i, (end_epoch, p)) in enumerate(logs):
 
     # Loop over the epochs
     for e in epochs:
-        # Find all rank-1 accuracies, rank-5 accuracies, and loss
+        # Find all rank-1 accuracies and loss
         # values, then take the final entry in the list for each
         s = r'Epoch\[' + str(e) + '\].*accuracy=([0]*\.?[0-9]+)'
         rank_1 = re.findall(s, rows)[0]
-        s = r'Epoch\[' + str(e) + '\].*top_k_accuracy_5=([0]*\.?[0-9]+)'
-        rank_5 = re.findall(s, rows)[0]
         s = r'Epoch\[' + str(e) + '\].*cross-entropy=([0-9]*\.?[0-9]+)'
         loss = re.findall(s, rows)[0]
 
         # Update the batch training lists
         b_train_rank_1.append(float(rank_1))
-        b_train_rank_5.append(float(rank_5))
         b_train_loss.append(float(loss))
 
-    # Extract the validation rank-1 and rank-5 accuracies for each
+    # Extract the validation rank-1 for each
     # epoch, followed by the loss
     b_val_rank_1 = re.findall(r'Validation-accuracy=(.*)', rows)
-    b_val_rank_5 = re.findall(r'Validation-top_k_accuracy_5=(.*)', rows)
     b_val_loss = re.findall(r'Validation-cross-entropy=(.*)', rows)
 
-    # Convert the validation rank-1, rank-5, and loss lists to floats
+    # Convert the validation rank-1 and loss lists to floats
     b_val_rank_1 = [float(x) for x in b_val_rank_1]
-    b_val_rank_5 = [float(x) for x in b_val_rank_5]
     b_val_loss = [float(x) for x in b_val_loss]
 
     # Check to see if we are examining a log file other than the
@@ -84,12 +79,10 @@ for (i, (end_epoch, p)) in enumerate(logs):
 
     # Update the training lists
     train_rank_1.extend(b_train_rank_1[0:train_end])
-    train_rank_5.extend(b_train_rank_5[0:train_end])
     train_loss.extend(b_train_loss[0:train_end])
 
     # Update the validation lists
     val_rank_1.extend(b_val_rank_1[0:val_end])
-    val_rank_5.extend(b_val_rank_5[0:val_end])
     val_loss.extend(b_val_loss[0:val_end])
 
 # Plot the accuracies
@@ -97,12 +90,8 @@ plt.style.use("ggplot")
 plt.figure()
 plt.plot(np.arange(0, len(train_rank_1)), train_rank_1,
          label="train_rank_1")
-plt.plot(np.arange(0, len(train_rank_5)), train_rank_5,
-         label="train_rank_5")
 plt.plot(np.arange(0, len(val_rank_1)), val_rank_1,
          label="val_rank_1")
-plt.plot(np.arange(0, len(val_rank_5)), val_rank_5,
-         label="val_rank_5")
 plt.title("{}: Rank-1 and rank-5 accuracy on {}".format(
     args["network"], args["dataset"]
 ))
