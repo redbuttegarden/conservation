@@ -40,7 +40,7 @@ logging.basicConfig(level=logging.DEBUG,
 # Load the RGB means for the training set, then determine the batch
 # size
 means = json.loads(open(config.DATASET_MEAN).read())
-bat_size = config.BATCH_SIZE * config.NUM_DEVICES
+bat_size = config.BATCH_SIZE * args["num_devices"]
 
 train_iter = mx.io.ImageRecordIter(
     path_imgrec=config.TRAIN_MX_REC,
