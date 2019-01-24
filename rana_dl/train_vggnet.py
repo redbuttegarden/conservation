@@ -22,7 +22,7 @@ ap.add_argument("-c", "--checkpoints", required=True,
                 help="path to output checkpoint directory")
 ap.add_argument("-lr", "--learning-rate", type=float, default=1e-2,
                 help="learning rate to use for training")
-ap.add_argument("-n", "num-devices", type=int, default=1,
+ap.add_argument("-n", "--num-devices", type=int, default=1,
                 help="number of GPUs to run on")
 ap.add_argument("-p", "--prefix", required=True,
                 help="name of model prefix")
