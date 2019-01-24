@@ -22,6 +22,8 @@ ap.add_argument("-c", "--checkpoints", required=True,
                 help="path to output checkpoint directory")
 ap.add_argument("-lr", "--learning-rate", type=float, default=1e-2,
                 help="learning rate to use for training")
+ap.add_argument("-n", "num-devices", type=int, default=1,
+                help="number of GPUs to run on")
 ap.add_argument("-p", "--prefix", required=True,
                 help="name of model prefix")
 ap.add_argument("-s", "--start-epoch", type=int, default=0,
@@ -31,7 +33,8 @@ ap.add_argument("-e", "--end-epoch", type=int, default=80,
 args = vars(ap.parse_args())
 
 logging.basicConfig(level=logging.DEBUG,
-                    filename=os.path.sep.join([config.LOG_OUTPUT, "training_{}.log".format(args["start_epoch"])]),
+                    filename=os.path.sep.join([config.LOG_OUTPUT, "vggnet",
+                                               args["prefix"] + "_{}.log".format(args["start_epoch"])]),
                     filemode="w")
 
 # Load the RGB means for the training set, then determine the batch
@@ -49,7 +52,7 @@ train_iter = mx.io.ImageRecordIter(
     mean_r=means["R"],
     mean_g=means["G"],
     mean_b=means["B"],
-    preprocess_threads=config.NUM_DEVICES * 2
+    preprocess_threads=args["num_devices"] * 2
 )
 
 val_iter = mx.io.ImageRecordIter(
@@ -93,7 +96,7 @@ else:
 
 # Compile the model
 model = mx.model.FeedForward(
-    ctx=[mx.gpu(i) for i in range(0, config.NUM_DEVICES)],
+    ctx=[mx.gpu(i) for i in range(0, args["num_devices"])],
     symbol=model,
     initializer=mx.initializer.MSRAPrelu(),
     arg_params=arg_params,

@@ -2,7 +2,6 @@ import os
 
 NUM_CLASSES = 2
 BATCH_SIZE = 4
-NUM_DEVICES = 2
 NUM_TEST_IMAGES = 50 * NUM_CLASSES
 NUM_VAL_IMAGES = int(50 * NUM_CLASSES / 2)
 
@@ -17,4 +16,4 @@ TEST_MX_REC = os.path.sep.join([MX_OUTPUT, "rec/test.rec"])
 
 DATASET_MEAN = os.path.expanduser("~/data/output/vggnet/pollinator_mean.json")
 
-LOG_OUTPUT = os.path.expanduser("~/data/output/vggnet")
+LOG_OUTPUT = os.path.expanduser("~/data/output")
