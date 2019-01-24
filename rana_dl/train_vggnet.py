@@ -40,11 +40,12 @@ logging.basicConfig(level=logging.DEBUG,
 # Load the RGB means for the training set, then determine the batch
 # size
 means = json.loads(open(config.DATASET_MEAN).read())
+bat_size = config.BATCH_SIZE * config.NUM_DEVICES
 
 train_iter = mx.io.ImageRecordIter(
     path_imgrec=config.TRAIN_MX_REC,
     data_shape=(3, 480, 640),
-    batch_size=config.BATCH_SIZE,
+    batch_size=bat_size,
     #rand_crop=True,
     rand_mirror=True,
     #rotate=15,
@@ -58,7 +59,7 @@ train_iter = mx.io.ImageRecordIter(
 val_iter = mx.io.ImageRecordIter(
     path_imgrec=config.VAL_MX_REC,
     data_shape=(3, 480, 640),
-    batch_size=config.BATCH_SIZE,
+    batch_size=bat_size,
     mean_r=means["R"],
     mean_g=means["G"],
     mean_b=means["B"]
@@ -66,7 +67,7 @@ val_iter = mx.io.ImageRecordIter(
 
 # Initialize the optimizer
 opt = mx.optimizer.SGD(learning_rate=args["learning_rate"], momentum=0.9, wd=0.0005,
-                       rescale_grad=1.0 / config.BATCH_SIZE)
+                       rescale_grad=1.0 / bat_size)
 
 # Construct the checkpoints path, initialize the model argument and
 # auxillary parameters
@@ -107,7 +108,7 @@ model = mx.model.FeedForward(
 )
 
 # Initialize the callbacks and evaluation metrics
-batch_end_CBs = [mx.callback.Speedometer(config.BATCH_SIZE, 50)]
+batch_end_CBs = [mx.callback.Speedometer(bat_size, 50)]
 epoch_end_CBs = [mx.callback.do_checkpoint(checkpoints_path)]
 metrics = [mx.metric.Accuracy(), mx.metric.CrossEntropy()]
 
