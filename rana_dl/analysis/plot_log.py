@@ -15,12 +15,12 @@ args = vars(ap.parse_args())
 
 # Define the paths to the training logs
 logs = [
-    (60, os.path.sep.join([os.pardir, os.pardir, os.pardir,
-                           "data/output", args["network"], "training_0.log"])),  # lr=1e-2
-    (70, os.path.sep.join([os.pardir, os.pardir, os.pardir,
-                           "data/output", args["network"], "training_60.log"])),  # lr=1e-3
-    (90, os.path.sep.join([os.pardir, os.pardir, os.pardir,
-                           "data/output", args["network"], "training_70.log"]))  # lr=1e-4
+    (5, os.path.sep.join([os.pardir, os.pardir, os.pardir,
+                           "data/output", args["network"], "training_0.log"])),
+    (50, os.path.sep.join([os.pardir, os.pardir, os.pardir,
+                           "data/output", args["network"], "training_5.log"])),
+    (52, os.path.sep.join([os.pardir, os.pardir, os.pardir,
+                           "data/output", args["network"], "model3_50.log"]))
 ]
 
 # Initialize the list of train rank-1 and rank-5 accuracies, along
@@ -92,7 +92,7 @@ plt.plot(np.arange(0, len(train_rank_1)), train_rank_1,
          label="train_rank_1")
 plt.plot(np.arange(0, len(val_rank_1)), val_rank_1,
          label="val_rank_1")
-plt.title("{}: Rank-1 and rank-5 accuracy on {}".format(
+plt.title("{}: Rank-1 accuracy on {}".format(
     args["network"], args["dataset"]
 ))
 plt.xlabel("Epoch #")
