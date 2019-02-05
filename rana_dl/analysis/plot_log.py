@@ -30,7 +30,7 @@ logs = [
     (56, os.path.sep.join([os.pardir, os.pardir, os.pardir,
                            "data/output", args["network"], "training_50.log"])),
     (100, os.path.sep.join([os.pardir, os.pardir, os.pardir,
-                           "data/output", args["network"], "training_56.log"])),
+                           "data/output", args["network"], "model2_56.log"])),
 ]
 
 # Initialize the list of train rank-1 and rank-5 accuracies, along
