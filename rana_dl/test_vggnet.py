@@ -37,7 +37,7 @@ model = mx.model.FeedForward.load(checkpoints_path,
 
 # Compile the model
 model = mx.model.FeedForward(
-    ctx=[mx.gpu(0)],
+    ctx=[mx.cpu()],
     symbol=model.symbol,
     arg_params=model.arg_params,
     aux_params=model.aux_params
@@ -46,7 +46,7 @@ model = mx.model.FeedForward(
 # Make predictions on the testing data
 print("[INFO] Predicting on test data...")
 metrics = [mx.metric.Accuracy()]
-rank1 = model.score(test_iter, eval_metric=metrics)
+rank1 = model.score(test_iter, eval_metric=metrics)[0]
 
 # Display the rank-1 accuracies
 print("[INFO] rank-1: {:.2f}%".format(rank1 * 100))
