@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     libtiff-dev \
     libx264-dev \
     libxvidcore-dev \
+    nano \
     pkg-config \
     python3-dev \
     python3-pip \
@@ -82,5 +83,9 @@ RUN chown -R docker:docker /code/
 
 # Create mount points for UofU CHPC Resources
 RUN mkdir /uufs /scratch
+
+# Create directories expected by config file
+RUN mkdir -p /home/docker/data/output/vggnet
+RUN mkdir /home/docker/data/rec
 
 CMD /bin/bash
