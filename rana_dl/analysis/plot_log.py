@@ -15,12 +15,14 @@ args = vars(ap.parse_args())
 
 # Define the paths to the training logs
 logs = [
-    (60, os.path.sep.join([os.pardir, os.pardir, os.pardir,
-                           "data/output", args["network"], "training_0.log"])),  # lr=1e-2
-    (70, os.path.sep.join([os.pardir, os.pardir, os.pardir,
-                           "data/output", args["network"], "training_60.log"])),  # lr=1e-3
-    (90, os.path.sep.join([os.pardir, os.pardir, os.pardir,
-                           "data/output", args["network"], "training_70.log"]))  # lr=1e-4
+    (21, os.path.sep.join([os.pardir, os.pardir, os.pardir,
+                           "data/output", args["network"], "model4_0.log"])),
+    (80, os.path.sep.join([os.pardir, os.pardir, os.pardir,
+                           "data/output", args["network"], "model4_21.log"])),
+    (97, os.path.sep.join([os.pardir, os.pardir, os.pardir,
+                           "data/output", args["network"], "model4_80.log"])),
+    (100, os.path.sep.join([os.pardir, os.pardir, os.pardir,
+                           "data/output", args["network"], "model4_97.log"])),
 ]
 
 # Initialize the list of train rank-1 and rank-5 accuracies, along
