@@ -94,7 +94,7 @@ plt.plot(np.arange(0, len(train_rank_1)), train_rank_1,
          label="train_rank_1")
 plt.plot(np.arange(0, len(val_rank_1)), val_rank_1,
          label="val_rank_1")
-plt.title("{}: Rank-1 and rank-5 accuracy on {}".format(
+plt.title("{}: Rank-1 on {}".format(
     args["network"], args["dataset"]
 ))
 plt.xlabel("Epoch #")
