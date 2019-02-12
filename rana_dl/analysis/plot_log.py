@@ -19,6 +19,8 @@ logs = [
                            "data/output", args["network"], "model5_0.log"])),
     (45, os.path.sep.join([os.pardir, os.pardir, os.pardir,
                            "data/output", args["network"], "model5_2.log"])),
+    (95, os.path.sep.join([os.pardir, os.pardir, os.pardir,
+                           "data/output", args["network"], "model5_45.log"])),
     (100, os.path.sep.join([os.pardir, os.pardir, os.pardir,
                            "data/output", args["network"], "model5_95.log"])),
 ]
