@@ -87,5 +87,6 @@ RUN mkdir /uufs /scratch
 # Create directories expected by config file
 RUN mkdir -p /home/docker/data/output/vggnet
 RUN mkdir /home/docker/data/rec
+RUN mkdir /home/docker/data/lists
 
 CMD /bin/bash
