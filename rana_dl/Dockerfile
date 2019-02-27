@@ -89,4 +89,7 @@ RUN mkdir -p /home/docker/data/output/vggnet
 RUN mkdir /home/docker/data/rec
 RUN mkdir /home/docker/data/lists
 
+# Make sure above directories have correct permissions for docker user
+RUN chown -R docker:docker /home/docker
+
 CMD /bin/bash
