@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 import random
@@ -10,10 +11,15 @@ from sklearn.model_selection import train_test_split
 
 from models import config
 
+ap = argparse.ArgumentParser()
+ap.add_argument("-d", "--dataset", required=True,
+                help="root path to dataset")
+args = vars(ap.parse_args())
+
 labels = []
 
 # grab the image paths and randomly shuffle them
-image_paths = sorted(list(paths.list_images("/code/media/pollinator_photos")))
+image_paths = sorted(list(paths.list_images(args["dataset"])))
 random.seed(42)
 random.shuffle(image_paths)
 
