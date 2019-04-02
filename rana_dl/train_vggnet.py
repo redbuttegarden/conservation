@@ -11,6 +11,7 @@ import argparse
 import json
 import logging
 import os
+import warnings
 
 import mxnet as mx
 from mxnet import gluon
@@ -59,8 +60,7 @@ train_dataloader = DataLoader(train_dataset, batch_size=bat_size, shuffle=True,
 val_dataloader = DataLoader(val_dataset, batch_size=bat_size, shuffle=False,
                             num_workers=4)
 
-# Construct the checkpoints path, initialize the model argument and
-# auxillary parameters
+# Construct the checkpoints path
 checkpoints_path = os.path.sep.join([args["checkpoints"],
                                      args["prefix"]])
 
@@ -72,11 +72,17 @@ if args["start_epoch"] <= 0:
     model = VGG19()
 
 # Otherwise, a specific checkpoint was supplied
-# else:
-#     # Load the checkpoint from disk
-#     print("[INFO] Loading epoch {}...".format(args["start_epoch"]))
-#     model = mx.module.Module.load(checkpoints_path, 100)
-#     model.bind(data_shapes=train_dataloader.provide_data, label_shapes=test_iter.provide_label)
+else:
+    # Load the checkpoint from disk
+    print("[INFO] Loading epoch {}...".format(args["start_epoch"]))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        # Figure out checkpoint filename
+        pad = 4 - len(str(args["start_epoch"]))
+        zeroes = "0" * pad
+        fname = args["prefix"] + "-" + zeroes + str(args["start_epoch"])
+        # Load our model
+        model = gluon.SymbolBlock.imports(args["prefix"] + "-symbol.json", ["data"], fname)
 
 ctx = [mx.gpu(i) for i in range(0, args["num_devices"])]
 
@@ -131,3 +137,8 @@ for epoch in range(args["end_epoch"]):
     print("[Epoch {}] Training metrics: {}={}".format(epoch, name, acc))
     print("[Epoch {}] Training loss: {:.2f}, validation loss: {:.2f}".format(epoch, train_loss, val_loss))
     metrics[0].reset()  # End of epoch
+
+    # Save a checkpoint
+    path = os.path.sep.join([checkpoints_path, args["prefix"]])
+    print("Saving checkpoint file {} to {}...".format(path, checkpoints_path))
+    model.export(path, epoch=epoch)
