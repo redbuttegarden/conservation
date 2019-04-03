@@ -87,7 +87,7 @@ else:
 ctx = [mx.gpu(i) for i in range(0, args["num_devices"])]
 
 model.initialize(mx.initializer.MSRAPrelu(), ctx=ctx)
-trainer = gluon.Trainer(model.collect_params(), "sgd", {"learning_date": args["learning_rate"]})
+trainer = gluon.Trainer(model.collect_params(), "sgd", {"learning_rate": args["learning_rate"]})
 
 # Initialize the evaluation metrics
 metrics = [mx.metric.Accuracy()]
