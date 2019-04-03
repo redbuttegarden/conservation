@@ -50,10 +50,10 @@ bat_size = config.BATCH_SIZE * args["num_devices"]
 
 train_dataset = ImageRecordDataset(config.TRAIN_MX_REC)
 transformer = gluon.data.vision.transforms.ToTensor()
-train_dataset = train_dataset.transform_first(transformer)
+train_dataset = train_dataset.transform(transformer)
 
 val_dataset = ImageRecordDataset(config.VAL_MX_REC)
-val_dataset = val_dataset.transform_first(transformer)
+val_dataset = val_dataset.transform(transformer)
 
 train_dataloader = DataLoader(train_dataset, batch_size=bat_size, shuffle=True,
                               num_workers=4)
