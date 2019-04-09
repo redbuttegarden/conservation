@@ -12,11 +12,10 @@ import json
 import logging
 import os
 import warnings
+from time import time
 
 import mxnet as mx
 from mxnet import gluon
-from mxnet.gluon.data import DataLoader
-from mxnet.gluon.data.vision.datasets import ImageRecordDataset
 
 from models import config
 from models.networks.mxvggnet import VGG19
@@ -30,8 +29,8 @@ ap.add_argument("-n", "--num-devices", type=int, default=1,
                 help="number of GPUs to run on")
 ap.add_argument("-p", "--prefix", required=True,
                 help="name of model prefix")
-# ap.add_argument("-m", "--means", required=True,
-#                 help="path to image channels means file associated with training data")
+ap.add_argument("-m", "--means", required=True,
+                help="path to image channels means file associated with training data")
 ap.add_argument("-s", "--start-epoch", type=int, default=0,
                 help="epoch to restart training at")
 ap.add_argument("-e", "--end-epoch", type=int, default=100,
@@ -43,22 +42,90 @@ logging.basicConfig(level=logging.DEBUG,
                                                args["prefix"] + "_{}.log".format(args["start_epoch"])]),
                     filemode="w")
 
+
+class DataIterLoader():
+    def __init__(self, data_iter):
+        self.data_iter = data_iter
+
+    def __iter__(self):
+        self.data_iter.reset()
+        return self
+
+    def __next__(self):
+        batch = self.data_iter.__next__()
+        assert len(batch.data) == len(batch.label) == 1
+        data = batch.data[0]
+        label = batch.label[0]
+        return data, label
+
+    def next(self):
+        return self.__next__() # for Python 2
+
+
+def forward_backward(net, data, label):
+    with mx.autograd.record():
+        outputs = [net(x) for x in data]
+        losses = [loss_fn(X, Y) for X, Y in zip(outputs, label)]
+    for l in losses:
+        l.backward()
+
+    return outputs, losses
+
+
+def train_batch(data_it, label_it, ctx, net, trainer, metric):
+    # Split the data batch and load them on GPUs
+    data = gluon.utils.split_and_load(data_it, ctx)
+    label = gluon.utils.split_and_load(label_it, ctx)
+    # Compute gradient
+    output, loss = forward_backward(net, data, label)
+    # Update parameters
+    trainer.step(data_it.shape[0])
+    # Update metrics
+    metric.update(label, output)
+    # Return loss for summing
+    return loss
+
+
+def valid_batch(val_data, ctx, model):
+    metric = mx.metric.Accuracy()
+    for data, label in val_data:
+        data = gluon.utils.split_and_load(data, ctx, even_split=False)
+        label = gluon.utils.split_and_load(label, ctx, even_split=False)
+        outputs = [model(x) for x in data]
+        metric.update(label, outputs)
+
+    return metric.get()
+
+
 # Load the RGB means for the training set, then determine the batch
 # size
-# means = json.loads(open(args["means"]).read())
+means = json.loads(open(args["means"]).read())
 bat_size = config.BATCH_SIZE * args["num_devices"]
 
-train_dataset = ImageRecordDataset(config.TRAIN_MX_REC)
-transformer = gluon.data.vision.transforms.ToTensor()
-train_dataset = train_dataset.transform(transformer)
+train_iter = mx.io.ImageRecordIter(
+    path_imgrec=config.TRAIN_MX_REC,
+    data_shape=(3, 480, 640),
+    batch_size=bat_size,
+    rand_mirror=True,
+    mean_r=means["R"],
+    mean_g=means["G"],
+    mean_b=means["B"],
+    preprocess_threads=args["num_devices"] * 2
+)
 
-val_dataset = ImageRecordDataset(config.VAL_MX_REC)
-val_dataset = val_dataset.transform(transformer)
+val_iter = mx.io.ImageRecordIter(
+    path_imgrec=config.VAL_MX_REC,
+    data_shape=(3, 480, 640),
+    batch_size=bat_size,
+    mean_r=means["R"],
+    mean_g=means["G"],
+    mean_b=means["B"]
+)
 
-train_dataloader = DataLoader(train_dataset, batch_size=bat_size, shuffle=True,
-                              num_workers=4)
-val_dataloader = DataLoader(val_dataset, batch_size=bat_size, shuffle=False,
-                            num_workers=4)
+train_iter_loader = DataIterLoader(train_iter)
+val_iter_loader = DataIterLoader(val_iter)
+
+num_batch = len(train_iter_loader)
 
 # Construct the checkpoints path
 checkpoints_path = os.path.sep.join([args["checkpoints"],
@@ -87,56 +154,34 @@ else:
 ctx = [mx.gpu(i) for i in range(0, args["num_devices"])]
 
 model.initialize(mx.initializer.MSRAPrelu(), ctx=ctx)
+model.hybridize()
 trainer = gluon.Trainer(model.collect_params(), "sgd", {"learning_rate": args["learning_rate"]})
-
-# Initialize the evaluation metrics
-metrics = [mx.metric.Accuracy()]
 
 # Define our loss function
 loss_fn = gluon.loss.SoftmaxCrossEntropyLoss()
+
+metric = mx.metric.Accuracy()
 
 # Train the network
 print("[INFO] Training network...")
 for epoch in range(args["end_epoch"]):
     # Training Loop
-    cumulative_train_loss = mx.nd.zeros(1, ctx=ctx)
-    training_samples = 0
+    start = time()
+    train_loss = 0
+    metric.reset()
 
-    for batch_idx, (data, label) in enumerate(train_dataloader):  # start of mini-batch
-        data = data.as_in_context(ctx)
-        label = label.as_in_context(ctx)
+    for d, l in train_iter_loader:  # start of mini-batch
+        train_loss += train_batch(d, l, ctx, model, trainer, metric)
+        mx.nd.waitall()  # Wait until all computations are finished to benchmark the time
 
-        with mx.autograd.record():
-            output = model(data)  # Forward pass
-            loss = loss_fn(output, label)  # Get loss
-
-        loss.backward()  # Compute gradients
-        trainer.step(data.shape[0])  # Update weights with SGD
-        cumulative_train_loss += loss.sum()
-        training_samples += data.shape[0]
-        metrics[0].update(label, output)  # Update the metrics # end of mini-batch
-
-    train_loss = cumulative_train_loss.asscalar() / training_samples
+    _, train_acc = metric.get()
+    train_loss /= num_batch
+    print("[Epoch {}] Training Time = {:.1f} sec | Train-acc: {:.3f}, loss: {:.3f}".format(epoch, time() - start,
+                                                                                           train_acc, train_loss))
 
     # Validation loop
-    cumulative_val_loss = mx.nd.zeros(1, ctx)
-    val_samples = 0
-    for batch_idx, (data, label) in enumerate(val_dataloader):
-        data = data.as_in_context(ctx)
-        label = label.as_in_context(ctx)
-
-        output = model(data)  # Forward pass
-        loss = loss_fn(output, label)  # Get loss
-
-        cumulative_val_loss += loss.sum()
-        val_samples += data.shape[0]
-
-    val_loss = cumulative_val_loss.asscalar() / val_samples
-
-    name, acc = metrics[0].get()
-    print("[Epoch {}] Training metrics: {}={}".format(epoch, name, acc))
-    print("[Epoch {}] Training loss: {:.2f}, validation loss: {:.2f}".format(epoch, train_loss, val_loss))
-    metrics[0].reset()  # End of epoch
+    _, val_acc = valid_batch(val_iter_loader, ctx, model)
+    print("\tValidation Accuracy = {:.2f}".format(val_acc))
 
     # Save a checkpoint
     path = os.path.sep.join([checkpoints_path, args["prefix"]])
