@@ -1,10 +1,13 @@
 import argparse
 import json
 import os
+import warnings
 
 import mxnet as mx
+from mxnet import gluon
 
 from models import config
+from utils.data_iter_loader import DataIterLoader
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-c", "--checkpoints", required=True,
@@ -32,24 +35,31 @@ test_iter = mx.io.ImageRecordIter(
     mean_b=means["B"]
 )
 
-# Load the checkpoints from disk
-print("[INFO] Loading model...")
-checkpoints_path = os.path.sep.join([args["checkpoints"],
-                                     args["prefix"]])
-model = mx.module.Module.load(checkpoints_path, args["epoch"])
+test_iter_loader = DataIterLoader(test_iter)
 
-
-# Compile the model
-model.bind(data_shapes=test_iter.provide_data,
-           label_shapes=test_iter.provide_label)
+# Load the checkpoint from disk
+print("[INFO] Loading epoch {}...".format(args["epoch"]))
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    # Figure out checkpoint filename
+    pad = 4 - len(str(args["epoch"]))
+    zeroes = "0" * pad
+    fname = args["prefix"] + "-" + zeroes + str(args["epoch"]) + ".params"
+    model = gluon.SymbolBlock.imports(os.path.sep.join([args["checkpoints"], args["prefix"] + "-symbol.json"]),
+                                      ["data"], os.path.sep.join([args["checkpoints"], fname]))
 
 # Make predictions on the testing data
 print("[INFO] Predicting on test data...")
 metrics = [mx.metric.Accuracy(), mx.metric.F1(average="micro")]
-rank1 = model.score(test_iter, eval_metric=metrics)[0][1]
+for data, label in test_iter_loader:
+    data = data.as_in_context(mx.cpu())
+    label = label.as_in_context(mx.cpu())
+    output = model(data)
+    for metric in metrics:
+        metric.update(label, output)
 
-# Display the rank-1 accuracies
-print("[INFO] rank-1 Accuracy: {:.2f}%".format(rank1 * 100))
+name, acc = metrics[0].get()
+print("Test {}={:.4f}%".format(name, acc * 100))
 
 # The F1 metric inherits from a class that tracks the number
 # of false positives and negatives, allowing us to extract them

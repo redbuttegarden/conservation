@@ -32,6 +32,7 @@ class VGG19(gluon.HybridBlock):
             self.features.add(nn.Activation('relu'))
 
             self.features.add(nn.MaxPool2D(strides=2))
+            self.features.add(nn.Dropout(rate=0.25))
 
             # Block 2
             self.features.add(nn.Conv2D(128, kernel_size=3, padding=1))
@@ -43,6 +44,7 @@ class VGG19(gluon.HybridBlock):
             self.features.add(nn.Activation('relu'))
 
             self.features.add(nn.MaxPool2D(strides=2))
+            self.features.add(nn.Dropout(rate=0.25))
 
             # Block 3
             self.features.add(nn.Conv2D(256, kernel_size=3, padding=1))
@@ -61,6 +63,7 @@ class VGG19(gluon.HybridBlock):
             self.features.add(nn.Activation('relu'))
 
             self.features.add(nn.MaxPool2D(strides=2))
+            self.features.add(nn.Dropout(rate=0.25))
 
             # Block 4
             self.features.add(nn.Conv2D(512, kernel_size=3, padding=1))
@@ -79,6 +82,7 @@ class VGG19(gluon.HybridBlock):
             self.features.add(nn.Activation('relu'))
 
             self.features.add(nn.MaxPool2D(strides=2))
+            self.features.add(nn.Dropout(rate=0.25))
 
             # Block 5
             self.features.add(nn.Conv2D(512, kernel_size=3, padding=1))
@@ -97,6 +101,7 @@ class VGG19(gluon.HybridBlock):
             self.features.add(nn.Activation('relu'))
 
             self.features.add(nn.MaxPool2D(strides=2))
+            self.features.add(nn.Dropout(rate=0.25))
 
             # Block 6
             self.features.add(nn.Dense(4096, activation="relu", weight_initializer="normal",

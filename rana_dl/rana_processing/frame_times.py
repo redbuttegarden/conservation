@@ -4,9 +4,9 @@ import time
 
 from imutils.video import FileVideoStream
 
-from rana_logs.log import add_frame, get_last_processed_frame, setup, get_analyzed_videos, get_processed_videos, \
+from .rana_logs.log import add_frame, get_last_processed_frame, setup, get_analyzed_videos, get_processed_videos, \
     add_processed_video
-from utils.utils import compute_frame_time, get_video_list, process_reference_digits
+from .utils.utils import compute_frame_time, get_video_list, process_reference_digits
 
 
 def main(arguments):

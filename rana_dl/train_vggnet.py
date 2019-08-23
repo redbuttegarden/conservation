@@ -16,9 +16,10 @@ from time import time
 
 import mxnet as mx
 from mxnet import gluon
+from mxnet.gluon.model_zoo.vision import vgg16_bn
 
 from models import config
-from models.networks.mxvggnet import VGG19
+from utils.data_iter_loader import DataIterLoader
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-c", "--checkpoints", required=True,
@@ -43,31 +44,14 @@ logging.basicConfig(level=logging.DEBUG,
                     filemode="w")
 
 
-class DataIterLoader():
-    def __init__(self, data_iter):
-        self.data_iter = data_iter
-
-    def __iter__(self):
-        self.data_iter.reset()
-        return self
-
-    def __next__(self):
-        batch = self.data_iter.__next__()
-        assert len(batch.data) == len(batch.label) == 1
-        data = batch.data[0]
-        label = batch.label[0]
-        return data, label
-
-    def next(self):
-        return self.__next__() # for Python 2
-
-
 def forward_backward(net, data, label):
     with mx.autograd.record():
         outputs = [net(x) for x in data]
         losses = [loss_fn(X, Y) for X, Y in zip(outputs, label)]
     for l in losses:
         l.backward()
+    # for l in losses:
+    #     l.wait_to_read()
 
     return outputs, losses
 
@@ -82,8 +66,6 @@ def train_batch(data_it, label_it, ctx, net, trainer, metric):
     trainer.step(data_it.shape[0])
     # Update metrics
     metric.update(label, output)
-    # Return loss for summing
-    return loss
 
 
 def valid_batch(val_data, ctx, model):
@@ -125,8 +107,6 @@ val_iter = mx.io.ImageRecordIter(
 train_iter_loader = DataIterLoader(train_iter)
 val_iter_loader = DataIterLoader(val_iter)
 
-num_batch = len(train_iter_loader)
-
 # Construct the checkpoints path
 checkpoints_path = os.path.sep.join([args["checkpoints"],
                                      args["prefix"]])
@@ -136,7 +116,7 @@ checkpoints_path = os.path.sep.join([args["checkpoints"],
 if args["start_epoch"] <= 0:
     # Build the VGGNet architecture
     print("[INFO] Building network...")
-    model = VGG19()
+    model = vgg16_bn()
 
 # Otherwise, a specific checkpoint was supplied
 else:
@@ -147,9 +127,10 @@ else:
         # Figure out checkpoint filename
         pad = 4 - len(str(args["start_epoch"]))
         zeroes = "0" * pad
-        fname = args["prefix"] + "-" + zeroes + str(args["start_epoch"])
+        fname = args["prefix"] + "-" + zeroes + str(args["start_epoch"]) + ".params"
         # Load our model
-        model = gluon.SymbolBlock.imports(args["prefix"] + "-symbol.json", ["data"], fname)
+        model = gluon.SymbolBlock.imports(os.path.sep.join([args["checkpoints"], args["prefix"] + "-symbol.json"]),
+                                          ["data"], os.path.sep.join([args["checkpoints"], fname]))
 
 ctx = [mx.gpu(i) for i in range(0, args["num_devices"])]
 
@@ -167,23 +148,19 @@ print("[INFO] Training network...")
 for epoch in range(args["end_epoch"]):
     # Training Loop
     start = time()
-    train_loss = 0
     metric.reset()
 
     for d, l in train_iter_loader:  # start of mini-batch
-        train_loss += train_batch(d, l, ctx, model, trainer, metric)
+        train_batch(d, l, ctx, model, trainer, metric)
         mx.nd.waitall()  # Wait until all computations are finished to benchmark the time
 
     _, train_acc = metric.get()
-    train_loss /= num_batch
-    print("[Epoch {}] Training Time = {:.1f} sec | Train-acc: {:.3f}, loss: {:.3f}".format(epoch, time() - start,
-                                                                                           train_acc, train_loss))
+    print("[Epoch {}] Training Time = {:.1f} sec | Train-acc: {:.3f}".format(epoch, time() - start, train_acc))
 
     # Validation loop
     _, val_acc = valid_batch(val_iter_loader, ctx, model)
     print("\tValidation Accuracy = {:.2f}".format(val_acc))
 
     # Save a checkpoint
-    path = os.path.sep.join([checkpoints_path, args["prefix"]])
-    print("Saving checkpoint file {} to {}...".format(path, checkpoints_path))
-    model.export(path, epoch=epoch)
+    print("Saving checkpoint file to {}...".format(checkpoints_path))
+    model.export(checkpoints_path, epoch=epoch)
