@@ -121,7 +121,7 @@ if args["start_epoch"] <= 0:
 # Otherwise, a specific checkpoint was supplied
 else:
     # Load the checkpoint from disk
-    logging.INFO("[INFO] Loading epoch {}...".format(args["start_epoch"]))
+    logging.INFO("[INFO] Loading epoch {}...".format(str(args["start_epoch"])))
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         # Figure out checkpoint filename
