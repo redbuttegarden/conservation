@@ -111,17 +111,21 @@ val_iter_loader = DataIterLoader(val_iter)
 checkpoints_path = os.path.sep.join([args["checkpoints"],
                                      args["prefix"]])
 
+ctx = [mx.gpu(i) for i in range(0, args["num_devices"])]
+
 # If there is no specific model starting epoch supplied, then
 # initialize the network
 if args["start_epoch"] <= 0:
     # Build the VGGNet architecture
-    logging.info("[INFO] Building network...")
+    logging.info("[Building network...")
     model = vgg16_bn()
+    model.initialize(mx.initializer.MSRAPrelu(), ctx=ctx)
+    model.hybridize(static_alloc=True)
 
 # Otherwise, a specific checkpoint was supplied
 else:
     # Load the checkpoint from disk
-    logging.info("[INFO] Loading epoch {}...".format(str(args["start_epoch"])))
+    logging.info("[Loading epoch {}...".format(str(args["start_epoch"])))
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         # Figure out checkpoint filename
@@ -132,10 +136,6 @@ else:
         model = gluon.SymbolBlock.imports(os.path.sep.join([args["checkpoints"], args["prefix"] + "-symbol.json"]),
                                           ["data"], os.path.sep.join([args["checkpoints"], fname]))
 
-ctx = [mx.gpu(i) for i in range(0, args["num_devices"])]
-
-model.initialize(mx.initializer.MSRAPrelu(), ctx=ctx)
-model.hybridize()
 trainer = gluon.Trainer(model.collect_params(), "sgd", {"learning_rate": args["learning_rate"]})
 
 # Define our loss function
@@ -144,8 +144,8 @@ loss_fn = gluon.loss.SoftmaxCrossEntropyLoss()
 metric = mx.metric.Accuracy()
 
 # Train the network
-logging.info("[INFO] Training network...")
-for epoch in range(args["end_epoch"]):
+logging.info("[Training network...")
+for epoch in range(args["start_epoch"], args["end_epoch"]):
     # Training Loop
     start = time()
     metric.reset()
