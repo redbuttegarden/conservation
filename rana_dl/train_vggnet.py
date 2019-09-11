@@ -115,13 +115,13 @@ checkpoints_path = os.path.sep.join([args["checkpoints"],
 # initialize the network
 if args["start_epoch"] <= 0:
     # Build the VGGNet architecture
-    logging.INFO("[INFO] Building network...")
+    logging.info("[INFO] Building network...")
     model = vgg16_bn()
 
 # Otherwise, a specific checkpoint was supplied
 else:
     # Load the checkpoint from disk
-    logging.INFO("[INFO] Loading epoch {}...".format(str(args["start_epoch"])))
+    logging.info("[INFO] Loading epoch {}...".format(str(args["start_epoch"])))
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         # Figure out checkpoint filename
@@ -144,7 +144,7 @@ loss_fn = gluon.loss.SoftmaxCrossEntropyLoss()
 metric = mx.metric.Accuracy()
 
 # Train the network
-logging.INFO("[INFO] Training network...")
+logging.info("[INFO] Training network...")
 for epoch in range(args["end_epoch"]):
     # Training Loop
     start = time()
@@ -155,12 +155,12 @@ for epoch in range(args["end_epoch"]):
         mx.nd.waitall()  # Wait until all computations are finished to benchmark the time
 
     _, train_acc = metric.get()
-    logging.INFO("[Epoch {}] Training Time = {:.1f} sec | Train-acc: {:.3f}".format(epoch, time() - start, train_acc))
+    logging.info("[Epoch {}] Training Time = {:.1f} sec | Train-acc: {:.3f}".format(epoch, time() - start, train_acc))
 
     # Validation loop
     _, val_acc = valid_batch(val_iter_loader, ctx, model)
-    logging.INFO("\tValidation Accuracy = {:.2f}".format(val_acc))
+    logging.info("\tValidation Accuracy = {:.2f}".format(val_acc))
 
     # Save a checkpoint
-    logging.INFO("Saving checkpoint file to {}...".format(checkpoints_path))
+    logging.info("Saving checkpoint file to {}...".format(checkpoints_path))
     model.export(checkpoints_path, epoch=epoch)
