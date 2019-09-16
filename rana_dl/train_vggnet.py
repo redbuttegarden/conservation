@@ -134,7 +134,7 @@ else:
         fname = args["prefix"] + "-" + zeroes + str(args["start_epoch"]) + ".params"
         # Load our model
         model = gluon.SymbolBlock.imports(os.path.sep.join([args["checkpoints"], args["prefix"] + "-symbol.json"]),
-                                          ["data"], os.path.sep.join([args["checkpoints"], fname]))
+                                          ["data"], os.path.sep.join([args["checkpoints"], fname]), ctx=ctx)
 
 trainer = gluon.Trainer(model.collect_params(), "sgd", {"learning_rate": args["learning_rate"]})
 
